@@ -84,7 +84,7 @@ Note, pp-html depend on web-mode, you need to make sure web-mode has been instal
     </div>
     #+end_src
     
-*** COMMENT with some logic tag
+*** with some logic tag
    
     *include*
     
