@@ -2,7 +2,7 @@
 * pp-html
 Pp means pretty print. Pp-html is a utility which allows you to handly print simple html code or a complex html page with emacs lisp list form. You can using some logic tags like Django's template tag in list form, such as =include= =if= =each= =extend= and so on. These logic tags make it possible to print complex html pages as you like.
 
-Note, pp-html depend on web-mode, you need make sure install web-mode first.
+Note, pp-html depend on web-mode, you need to make sure web-mode has been installed first.
 
 ** Installation
    Clone this repo and add the following two lines in your emacs configuration.
@@ -39,7 +39,7 @@ Note, pp-html depend on web-mode, you need make sure install web-mode first.
 
     one tag with attribute and context
     #+BEGIN_SRC emacs-lisp :exports both :wrap src html
-    (print-html '(div :class "content" "div-content"))
+    (pp-html '(div :class "content" "div-content"))
     #+END_SRC
 
     #+RESULTS:
@@ -49,7 +49,7 @@ Note, pp-html depend on web-mode, you need make sure install web-mode first.
 
     one tag has a child element
     #+BEGIN_SRC emacs-lisp :exports both :wrap src html
-    (print-html '(div :class "content" (h1 :id "post-title" "title")))
+    (pp-html '(div :class "content" (h1 :id "post-title" "title")))
     #+END_SRC
 
     #+RESULTS:
