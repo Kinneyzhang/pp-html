@@ -1,0 +1,184 @@
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://blog.geekinney.com/static/light.css"/>
+* pp-html
+PP means pretty print. Pp-html is a utility which allows you to handly print simple html code or a complex html page with emacs lisp list form. You can using some logic tags like Django's template tag in list form, such as =include= =if= =each= =extend= and so on. These logic tags make it possible to print complex html pages as you like.
+
+Note, pp-html depend on web-mode, you need make sure install web-mode first.
+
+** Installation
+   Clone this repo and add the following two lines in your emacs configuration.
+
+   #+BEGIN_SRC emacs-lisp
+   (add-to-list 'load-path "<path-to-pp-html>")
+   (require 'pp-html)
+   #+END_SRC
+
+** Usage
+   Before use pp-html, you need to know the syntax of elisp list form. Below are some examples to illustrate.
+
+*** basic form
+    #+BEGIN_SRC emacs-lisp :exports both :wrap src html
+    (pp-html '(div))
+    #+END_SRC
+
+    #+RESULTS:
+    #+begin_src html
+    <div></div>
+    #+end_src
+-----
+    #+BEGIN_SRC emacs-lisp :exports both :wrap src html
+    (pp-html '(div :class "content"))
+    #+END_SRC
+
+    #+RESULTS:
+    #+begin_src html
+    <div class="content"></div>
+    #+end_src
+-----
+    #+BEGIN_SRC emacs-lisp :exports both :wrap src html
+    (print-html '(div :class "content" "div-content"))
+    #+END_SRC
+
+    #+RESULTS:
+    #+begin_src html
+    <div class="content">div-content</div>
+    #+end_src
+-----
+    #+BEGIN_SRC emacs-lisp :exports both :wrap src html
+    (print-html '(div :class "content" (h1 :id "post-title" "title")))
+    #+END_SRC
+
+    #+RESULTS:
+    #+begin_src html
+    <div class="content">
+    <h1 id="post-title">title</h1>
+    </div>
+    #+end_src
+
+    
+*** a complex form
+    #+BEGIN_SRC emacs-lisp :exports both :wrap src html
+    (pp-html
+     '(div :class "div-class"
+	   (h1 :id "header" title)
+	   (span :class "description" "description text")
+	   (p "paragraph content" (i "some italic text"))
+	   (a :href "href-url" (img :src "src" :alt "alt"))))
+    #+END_SRC
+
+    #+RESULTS:
+    #+begin_src html
+    <div class="div-class">
+    <h1 id="header" itle=""></h1>
+    <span class="description">description text</span>
+    <p>
+    paragraph content
+    <i>some italic text</i>
+    </p>
+    <a href="href-url">
+    <img src="src" alt="alt"/>
+    </a>
+    </div>
+    #+end_src
+
+    
+*** with some logic tag
+   
+    *include*
+
+      #+BEGIN_SRC emacs-lisp :exports both :wrap src html
+      (setq post-content
+	    '((h1 :id "header" title)
+	      (span :class "description" "description text")
+	      (p "paragraph content" (i "some italic text"))
+	      (a :href "href-url" (img :src "src" :alt "alt"))))
+
+      (pp-html
+       `(div :class "content"
+	     (:include ,post-content)))
+      #+END_SRC
+
+      #+RESULTS:
+      #+begin_src html
+      <div class="content">
+      <h1 id="header" itle=""></h1>
+      <span class="description">description text</span>
+      <p>
+      paragraph content
+      <i>some italic text</i>
+      </p>
+      <a href="href-url">
+      <img src="src" alt="alt"/>
+      </a>
+      </div>
+      #+end_src
+
+    *if*
+
+      #+BEGIN_SRC emacs-lisp :exports both :wrap src html
+      (setq test nil)
+
+      (pp-html
+       `(:if ,test
+	    (p "if test is non-nil, show this sentence")
+	    (p "if test is nil, show this sentence")))
+      #+END_SRC
+
+      #+RESULTS:
+      #+begin_src html
+      <p>if test is nil, show this sentence</p>
+      #+end_src
+
+
+    *each*
+
+      #+BEGIN_SRC emacs-lisp :exports both :wrap src html
+      (pp-html
+       '(ul
+	 (:each ("emacs" "vim" "vscode" "atom")
+		(li :class "editor" item))))
+      #+END_SRC
+
+      #+RESULTS:
+      #+begin_src html
+      <ul>
+      <li class="editor">emacs</li>
+      <li class="editor">vim</li>
+      <li class="editor">vscode</li>
+      <li class="editor">atom</li>
+      </ul>
+      #+end_src
+
+    *extend and block*
+
+      #+BEGIN_SRC emacs-lisp :exports both :wrap src html
+      (setq base-html
+	    '(body
+	      (h1 :id "logo" "戈楷旎")
+	      (p :id "description" "happy hacking emacs")
+	      (div :id "content"
+		   (:block main (p "this is default content")))
+	      (div :id "postamble"
+		   (:block end (p "this is default postamble")))))
+
+      (pp-html
+       `(:extend ,base-html
+		 ;; (:block main (p "this is the extend content"))
+		 (:block end (p "this is the extend postamble"))))
+      #+END_SRC
+
+      #+RESULTS:
+      #+begin_src html
+      <body>
+      <h1 id="logo">戈楷旎</h1>
+      <p id="description">happy hacking emacs</p>
+      <div id="content">
+      <p>this is default content</p>
+      </div>
+      <div id="postamble">
+      <p>this is the extend postamble</p>
+      </div>
+      </body>
+      #+end_src
+
+*** Generate a html page
+    see [[./example.org]]

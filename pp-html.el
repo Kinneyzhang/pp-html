@@ -124,7 +124,7 @@
 
 (defun pp-html--process-logic-extend (left)
   "Process :extend logic."
-  (let ((base-str (prin1-to-string (car left)))
+  (let* ((base-str (prin1-to-string (car left)))
 	(entend-str
 	 (with-temp-buffer
 	   (insert base-str)
