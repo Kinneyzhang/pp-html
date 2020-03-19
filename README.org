@@ -189,5 +189,8 @@ Note, pp-html depend on web-mode, you need to make sure web-mode has been instal
     </body>
     #+end_src
 
+*** preview printed html
+    Use =print-html-test= function to  preview the well formatted html in a view buffer. 
+
 *** Generate a html page
     see [[./example.org][example page]] .
