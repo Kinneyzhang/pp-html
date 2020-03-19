@@ -16,38 +16,39 @@ Note, pp-html depend on web-mode, you need make sure install web-mode first.
    Before use pp-html, you need to know the syntax of elisp list form. Below are some examples to illustrate.
 
 *** basic form
+    one tag
     #+BEGIN_SRC emacs-lisp :exports both :wrap src html
     (pp-html '(div))
     #+END_SRC
 
-    #+RESULTS:
     #+begin_src html
     <div></div>
     #+end_src
------
+
+    one tag with attribute
     #+BEGIN_SRC emacs-lisp :exports both :wrap src html
     (pp-html '(div :class "content"))
     #+END_SRC
 
-    #+RESULTS:
     #+begin_src html
     <div class="content"></div>
     #+end_src
------
+
+    one tag with attribute and context
     #+BEGIN_SRC emacs-lisp :exports both :wrap src html
     (print-html '(div :class "content" "div-content"))
     #+END_SRC
 
-    #+RESULTS:
     #+begin_src html
     <div class="content">div-content</div>
     #+end_src
------
+
+    one tag has a child element
     #+BEGIN_SRC emacs-lisp :exports both :wrap src html
     (print-html '(div :class "content" (h1 :id "post-title" "title")))
     #+END_SRC
 
-    #+RESULTS:
+    
     #+begin_src html
     <div class="content">
     <h1 id="post-title">title</h1>
@@ -65,7 +66,7 @@ Note, pp-html depend on web-mode, you need make sure install web-mode first.
 	   (a :href "href-url" (img :src "src" :alt "alt"))))
     #+END_SRC
 
-    #+RESULTS:
+    
     #+begin_src html
     <div class="div-class">
     <h1 id="header" itle=""></h1>
@@ -79,12 +80,12 @@ Note, pp-html depend on web-mode, you need make sure install web-mode first.
     </a>
     </div>
     #+end_src
-
     
 *** with some logic tag
    
     *include*
-
+    
+    When =:include= is the first element of list, include the variable following.
       #+BEGIN_SRC emacs-lisp :exports both :wrap src html
       (setq post-content
 	    '((h1 :id "header" title)
@@ -97,7 +98,7 @@ Note, pp-html depend on web-mode, you need make sure install web-mode first.
 	     (:include ,post-content)))
       #+END_SRC
 
-      #+RESULTS:
+      
       #+begin_src html
       <div class="content">
       <h1 id="header" itle=""></h1>
@@ -113,7 +114,8 @@ Note, pp-html depend on web-mode, you need make sure install web-mode first.
       #+end_src
 
     *if*
-
+    
+    When =:if= is the first element of list, judge if the 2nd of list is non-nil. If non-nil, return the 3rd element, or return the 4th one. The 4th element is not always necessary.
       #+BEGIN_SRC emacs-lisp :exports both :wrap src html
       (setq test nil)
 
@@ -123,14 +125,15 @@ Note, pp-html depend on web-mode, you need make sure install web-mode first.
 	    (p "if test is nil, show this sentence")))
       #+END_SRC
 
-      #+RESULTS:
+      
       #+begin_src html
       <p>if test is nil, show this sentence</p>
       #+end_src
 
 
     *each*
-
+    
+    When =:each= is the first element of list, loop for the 2nd list, replace the default value is =item= in next list form.
       #+BEGIN_SRC emacs-lisp :exports both :wrap src html
       (pp-html
        '(ul
@@ -138,7 +141,7 @@ Note, pp-html depend on web-mode, you need make sure install web-mode first.
 		(li :class "editor" item))))
       #+END_SRC
 
-      #+RESULTS:
+      
       #+begin_src html
       <ul>
       <li class="editor">emacs</li>
@@ -149,7 +152,8 @@ Note, pp-html depend on web-mode, you need make sure install web-mode first.
       #+end_src
 
     *extend and block*
-
+    
+    When =:extend= is the first element of list, extend the 2nd list form and replace the matched =:block= form.
       #+BEGIN_SRC emacs-lisp :exports both :wrap src html
       (setq base-html
 	    '(body
@@ -166,7 +170,7 @@ Note, pp-html depend on web-mode, you need make sure install web-mode first.
 		 (:block end (p "this is the extend postamble"))))
       #+END_SRC
 
-      #+RESULTS:
+      
       #+begin_src html
       <body>
       <h1 id="logo">戈楷旎</h1>
@@ -181,4 +185,4 @@ Note, pp-html depend on web-mode, you need make sure install web-mode first.
       #+end_src
 
 *** Generate a html page
-    see [[./example.org]]
+    see [[./example.org][example page]]
