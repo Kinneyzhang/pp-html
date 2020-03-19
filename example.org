@@ -1,99 +1,99 @@
 * generate a html page. 
 
 #+BEGIN_SRC emacs-lisp :exports both :wrap src html
-    (setq title "测试pp-html")
-    (setq generator "Emacs OrgMode")
-    (setq author "Kinney Zhang")
-    (setq favicon-href "test-url")
-    (setq css-href "test-css-url")
-    (setq ga-code "test-ga-code")
-    (setq site-name "戈楷旎")
-    (setq description "happy hacking emacs!")
-    (setq post-meta "test-post-meta")
-    (setq post-content '((p "para1")
-			 (p "para2")
-			 (p "para3")))
-    (setq comment t)
-    (setq comment-div '((div "this is comment code div")))
+(setq title "测试pp-html")
+(setq generator "Emacs OrgMode")
+(setq author "Kinney Zhang")
+(setq favicon-href "test-url")
+(setq css-href "test-css-url")
+(setq ga-code "test-ga-code")
+(setq site-name "戈楷旎")
+(setq description "happy hacking emacs!")
+(setq post-meta "test-post-meta")
+(setq post-content '((p "para1")
+		     (p "para2")
+		     (p "para3")))
+(setq comment t)
+(setq comment-div '((div "this is comment code div")))
 
-    (setq header
-	  `((meta :charset "utf-8")
-	    (meta :name "viewport" :content "width=device-width, initial-scale=1")
-	    (title ,title)
-	    (meta :name "generator" :content ,generator)
-	    (meta :name "author" :content ,author)
-	    (link :rel "shortcut icon" :href ,favicon-href)
-	    (link :rel "bookmark" :href ,favicon-href :type "image/x-icon")
-	    (link :rel "stylesheet" :type "text/css" :href ,css-href)
-	    (script ,ga-code)))
+(setq header
+      `((meta :charset "utf-8")
+	(meta :name "viewport" :content "width=device-width, initial-scale=1")
+	(title ,title)
+	(meta :name "generator" :content ,generator)
+	(meta :name "author" :content ,author)
+	(link :rel "shortcut icon" :href ,favicon-href)
+	(link :rel "bookmark" :href ,favicon-href :type "image/x-icon")
+	(link :rel "stylesheet" :type "text/css" :href ,css-href)
+	(script ,ga-code)))
 
-    (setq menubar
-	  `((div :id "toptitle"
-		 (a :id "logo" :href "/" ,site-name)
-		 (p :class "description" ,description))
-	    (div :id "topnav"
-		 (a :href "/index.html" "首页")
-		 (a :href "/archive.html" "归档")
-		 (a :href "/category.html" "分类")
-		 (a :href "/about.html" "关于"))))
+(setq menubar
+      `((div :id "toptitle"
+	     (a :id "logo" :href "/" ,site-name)
+	     (p :class "description" ,description))
+	(div :id "topnav"
+	     (a :href "/index.html" "首页")
+	     (a :href "/archive.html" "归档")
+	     (a :href "/category.html" "分类")
+	     (a :href "/about.html" "关于"))))
 
-    (setq article
-	  `((div :id "article-div"
-		 (header (h1 :class "title" ,title))
-		 (div :class "post-meta" (p ,post-meta))
-		 (div :class "post-content" (:include ,post-content)))))
+(setq article
+      `((div :id "article-div"
+	     (header (h1 :class "title" ,title))
+	     (div :class "post-meta" (p ,post-meta))
+	     (div :class "post-content" (:include ,post-content)))))
 
-    (setq new-article
-	  '((div :id "article-div"
-		 "this is another structure.")))
+(setq new-article
+      '((div :id "article-div"
+	     "this is another structure.")))
 
-    (setq postamble
-	  `((:if ,comment (:include ,comment-div))))
+(setq postamble
+      `((:if ,comment (:include ,comment-div))))
 
-    (setq base-html
-	  `(html :lang "en"
-		 (head
-		  (:include ,header))
-		 (body
-		  (:include ,menubar)
-		  (:block main
-			  (:include ,article))
-		  (:include ,postamble))))
+(setq base-html
+      `(html :lang "en"
+	     (head
+	      (:include ,header))
+	     (body
+	      (:include ,menubar)
+	      (:block main
+		      (:include ,article))
+	      (:include ,postamble))))
 
-    (setq extend-html
-	  `(:extend ,base-html
-		    (:block main (:include ,new-article))))
+(setq extend-html
+      `(:extend ,base-html
+		(:block main (:include ,new-article))))
 
-    (pp-html extend-html)
-    #+END_SRC
+(pp-html extend-html)
+#+END_SRC
 
-    #+RESULTS:
-    #+begin_src html
-    <html lang="en">
-      <head>
-	<meta charset="utf-8"/>
-	<meta name="viewport" content="width=device-width, initial-scale=1"/>
-	<title>测试pp-html</title>
-	<meta name="generator" content="Emacs OrgMode"/>
-	<meta name="author" content="Kinney Zhang"/>
-	<link rel="shortcut icon" href="test-url"/>
-	<link rel="bookmark" href="test-url" type="image/x-icon"/>
-	<link rel="stylesheet" type="text/css" href="test-css-url"/>
-	<script>test-ga-code</script>
-      </head>
-      <body>
-	<div id="toptitle">
-	  <a id="logo" href="/">戈楷旎</a>
-	  <p class="description">happy hacking emacs!</p>
-	</div>
-	<div id="topnav">
-	  <a href="/index.html">首页</a>
-	  <a href="/archive.html">归档</a>
-	  <a href="/category.html">分类</a>
-	  <a href="/about.html">关于</a>
-	</div>
-	<div id="article-div">this is another structure.</div>
-	<div>this is comment code div</div>
-      </body>
-    </html>
-    #+end_src
+#+RESULTS:
+#+begin_src html
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>测试pp-html</title>
+    <meta name="generator" content="Emacs OrgMode"/>
+    <meta name="author" content="Kinney Zhang"/>
+    <link rel="shortcut icon" href="test-url"/>
+    <link rel="bookmark" href="test-url" type="image/x-icon"/>
+    <link rel="stylesheet" type="text/css" href="test-css-url"/>
+    <script>test-ga-code</script>
+  </head>
+  <body>
+    <div id="toptitle">
+      <a id="logo" href="/">戈楷旎</a>
+      <p class="description">happy hacking emacs!</p>
+    </div>
+    <div id="topnav">
+      <a href="/index.html">首页</a>
+      <a href="/archive.html">归档</a>
+      <a href="/category.html">分类</a>
+      <a href="/about.html">关于</a>
+    </div>
+    <div id="article-div">this is another structure.</div>
+    <div>this is comment code div</div>
+  </body>
+</html>
+#+end_src
