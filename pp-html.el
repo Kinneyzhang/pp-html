@@ -98,6 +98,21 @@
     ))
 
 ;; Process logic list.
+(defun pp-html--list-replace-all (old new list &optional fn-equal)
+  "Replace all occurences of OLD by NEW in LIST.
+Return number of elements replaced.
+FN-EQUAL takes two arguments and return t if they are considered equals.
+FN-EQUAL defaults to `equal'.
+Destructive."
+  (let ((fn-equal (or fn-equal #'equal)))
+    (while list
+      (when (listp (car list))
+	(my/list-replace-all old new (car list)))
+      (when (funcall fn-equal old (car list))
+        (setcar list new))
+      (setq list (cdr list))
+      )))
+
 (defun pp-html--process-logic-include (left)
   "Process :include logic."
   (dolist (item (car left))
@@ -109,14 +124,16 @@
       (pp-html-unformatted (cadr left))
     (pp-html-unformatted (cadr (cdr left)))))
 
-(defun pp-html--process-logic-each (left)
-  "Process :each logic."
-  (dolist (item (car left))
-    (setq each-list
-	  (read
-	   (replace-regexp-in-string
-	    "item" (concat "\"" item "\"") (prin1-to-string (cadr left)))))
-    (pp-html-unformatted each-list)))
+(defun pp-html--process-logic-for (left)
+  "Process :for logic"
+  (let* ((name (car left))
+	 (items (cadr left))
+	 (target (cadr (cdr left)))
+	 (target-copy (copy-tree target)))
+    (dolist (item items)
+      (pp-html--list-replace-all name item target)
+      (pp-html-unformatted target)
+      (setq target target-copy))))
 
 (defun pp-html--process-logic-block (left)
   "Process :block logic."
@@ -125,26 +142,26 @@
 (defun pp-html--process-logic-extend (left)
   "Process :extend logic."
   (let* ((base-str (prin1-to-string (car left)))
-	(entend-str
-	 (with-temp-buffer
-	   (insert base-str)
-	   (setq point (goto-char (point-min)))
-	   (while point
-	     (dolist (item (cdr left))
-	       (setq name (symbol-name (cadr item)))
-	       (setq block (prin1-to-string (cadr (cdr item))))
-	       (setq point (re-search-forward ":block" nil t))
-	       (skip-chars-forward "[\" \"\n\t\r]")
-	       (if (string= name (thing-at-point 'word))
-		   (progn
-		     (skip-chars-forward "[a-zA-Z]")
-		     (skip-chars-forward "[\" \"\n\t\r]")
-		     (setq sexp-beg (point))
-		     (ignore-errors (forward-sexp))
-		     (setq sexp-end (point))
-		     (kill-region sexp-beg sexp-end)
-		     (insert block)))))
-	   (buffer-substring-no-properties (point-min) (point-max)))))
+	 (entend-str
+	  (with-temp-buffer
+	    (insert base-str)
+	    (setq point (goto-char (point-min)))
+	    (while point
+	      (dolist (item (cdr left))
+		(setq name (symbol-name (cadr item)))
+		(setq block (prin1-to-string (cadr (cdr item))))
+		(setq point (re-search-forward ":block" nil t))
+		(skip-chars-forward "[\" \"\n\t\r]")
+		(if (string= name (thing-at-point 'word))
+		    (progn
+		      (skip-chars-forward "[a-zA-Z]")
+		      (skip-chars-forward "[\" \"\n\t\r]")
+		      (setq sexp-beg (point))
+		      (ignore-errors (forward-sexp))
+		      (setq sexp-end (point))
+		      (kill-region sexp-beg sexp-end)
+		      (insert block)))))
+	    (buffer-substring-no-properties (point-min) (point-max)))))
     (pp-html-unformatted (read entend-str))))
 
 (defun pp-html--process-logic (list)
@@ -156,8 +173,8 @@
       (pp-html--process-logic-include left))
      ((eq logic :if)
       (pp-html--process-logic-if left))
-     ((eq logic :each)
-      (pp-html--process-logic-each left))
+     ((eq logic :for)
+      (pp-html--process-logic-for left))
      ((eq logic :block)
       (pp-html--process-logic-block left))
      ((eq logic :extend)
