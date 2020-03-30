@@ -192,7 +192,7 @@ Note, pp-html depend on web-mode, you need to make sure web-mode has been instal
 *** preview printed html
     Use =pp-html-test= function to  preview the well formatted html in a view buffer. 
 
-    [[./pp-html-test.gif]]
+    [[./test.gif]]
 
 *** Generate a html page
     see [[./example.org][example page]] .

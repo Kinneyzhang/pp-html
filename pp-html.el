@@ -115,7 +115,7 @@ Destructive."
 
 (defun pp-html--process-logic-include (left)
   "Process :include logic."
-  (dolist (item (car left))
+  (dolist (item (eval (car left)))
     (pp-html-unformatted item)))
 
 (defun pp-html--process-logic-if (left)
@@ -210,16 +210,8 @@ Destructive."
 ;; Format html string.
 (defun pp-html--has-child-p ()
   "Judge if a tag has child element."
-  (let ((open-tag-pos (save-excursion
-			(web-mode-element-beginning)
-			(point)))
-	(close-tag-pos (save-excursion
-			 (web-mode-tag-match)
-			 (point))))
-    (save-excursion
-      (goto-char close-tag-pos)
-      (or (search-backward-regexp "</.+>" open-tag-pos t)
-	  (search-backward-regexp "/>" open-tag-pos t)))))
+  (save-excursion
+    (web-mode-element-child)))
 
 (defun pp-html--has-context-p ()
   "Judge if a tag has inner context."
@@ -248,7 +240,7 @@ Destructive."
 	      (pp-html--has-context-newline)
 	      (setq pos (point)))
 	  (progn
-	    (sgml-skip-tag-forward 1)
+	    (web-mode-element-end)
 	    (newline)
 	    (setq pos (point))
 	    (pp-html--has-context-newline)
