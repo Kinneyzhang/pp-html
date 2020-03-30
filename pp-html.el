@@ -40,7 +40,7 @@
 (defun pp-html--get-plist (list)
   "Get attributes plist of a html tag."
   (let* ((i 0)
-	 (plist nil))
+	 (plist))
     (while (and (nth i list) (symbolp (nth i list)))
       (setq key (nth i list))
       (setq value (nth (1+ i) list))
@@ -85,15 +85,21 @@
 	  (insert (concat "<" tag "/>"))
 	  (backward-char 2)
 	  (dolist (attr attrs)
-	    (insert
-	     (concat " " (substring (symbol-name (car attr)) 1) "=" "\"" (cadr attr) "\"")))
+	    (if (null (cadr attr))
+		(insert
+		 (concat " " (substring (symbol-name (car attr)) 1)))
+	      (insert
+	       (concat " " (substring (symbol-name (car attr)) 1) "=" "\"" (cadr attr) "\""))))
 	  (forward-char 2))
       (progn
 	(insert (concat "<" tag ">" "</" tag ">"))
 	(backward-char (+ 4 (length tag)))
 	(dolist (attr attrs)
-	  (insert
-	   (concat " " (substring (symbol-name (car attr)) 1) "=" "\"" (cadr attr) "\"")))
+	  (if (null (cadr attr))
+	      (insert
+	       (concat " " (substring (symbol-name (car attr)) 1)))
+	    (insert
+	     (concat " " (substring (symbol-name (car attr)) 1) "=" "\"" (cadr attr) "\""))))
 	(forward-char 1)))
     ))
 
