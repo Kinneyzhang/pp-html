@@ -137,7 +137,7 @@ Note, pp-html depend on web-mode, you need to make sure web-mode has been instal
 
     *for*
     
-    When =:each= is the first element of list, loop for the 2nd list, replace the default value is =item= in next list form.
+    When =:for= is the first element of list, loop for the 3rd of list, replace the 2nd of list in next list form.
     #+BEGIN_SRC emacs-lisp :exports both :wrap src html
     (pp-html
      '(ul
