@@ -1,6 +1,6 @@
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://blog.geekinney.com/static/light.css"/>
 * pp-html
-Pp means pretty print. Pp-html is a utility which allows you to handly print simple html code or a complex html page with emacs lisp list form. You can using some logic tags like Django's template tag in list form, such as =include= =if= =each= =extend= and so on. These logic tags make it possible to print complex html pages as you like.
+Pp means pretty print. Pp-html is a utility which allows you to handly print simple html code or a complex html page with emacs lisp list form. You can using some logic tags like Django's template tag in list form, such as =:include= =:if= =:for= =:extend= and so on. These logic tags make it possible to print complex html pages as you like.
 
 Note, pp-html depend on web-mode, you need to make sure web-mode has been installed first.
 
@@ -29,12 +29,12 @@ Note, pp-html depend on web-mode, you need to make sure web-mode has been instal
 
     one tag with attributes
     #+BEGIN_SRC emacs-lisp :exports both :wrap src html
-    (pp-html '(div :class "content" :style "color:red;"))
+    (pp-html '(link :async nil :rel "stylesheet" :href "url"))
     #+END_SRC
 
     #+RESULTS:
     #+begin_src html
-    <div class="content" style="color:red;"></div>
+    <link async rel="stylesheet" href="url"/>
     #+end_src
 
     one tag with attribute and context
@@ -72,7 +72,7 @@ Note, pp-html depend on web-mode, you need to make sure web-mode has been instal
     #+RESULTS:
     #+begin_src html
     <div class="div-class">
-      <h1 id="header" itle=""></h1>
+      <h1 id="header" itle></h1>
       <span class="description">description text</span>
       <p>
 	paragraph content
@@ -99,7 +99,7 @@ Note, pp-html depend on web-mode, you need to make sure web-mode has been instal
 
     (pp-html
      `(div :class "content"
-	   (:include ,post-content)))
+	   (:include post-content)))
     #+END_SRC
 
     #+RESULTS:
@@ -135,14 +135,14 @@ Note, pp-html depend on web-mode, you need to make sure web-mode has been instal
     <p>if test is nil, show this sentence</p>
     #+end_src
 
-    *each*
+    *for*
     
     When =:each= is the first element of list, loop for the 2nd list, replace the default value is =item= in next list form.
     #+BEGIN_SRC emacs-lisp :exports both :wrap src html
     (pp-html
      '(ul
-       (:each ("emacs" "vim" "vscode" "atom")
-	      (li :class "editor" item))))
+       (:for editor ("emacs" "vim" "vscode" "atom")
+	     (li :class "editor" editor))))
     #+END_SRC
 
     #+RESULTS:
