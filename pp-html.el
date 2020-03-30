@@ -32,9 +32,13 @@
 (require 'web-mode)
 (require 'sgml-mode)
 
-(defvar pp-html--single-tag-list
+(defvar pp-html-single-tag-list
   '("img" "br" "hr" "input" "meta" "link" "param")
   "Html single tag list.")
+
+(defvar pp-html-logic-tag-list
+  '(:include :if :for :block :extend)
+  "Supported logic tag.")
 
 ;; some utilities
 (defun pp-html--get-plist (list)
@@ -71,7 +75,7 @@
 (defun pp-html--jump-outside (tag)
   "Jump outside of a html tag"
   (let ((tag (symbol-name tag)))
-    (if (member tag pp-html--single-tag-list)
+    (if (member tag pp-html-single-tag-list)
 	(forward-char 0)
       (forward-char (+ 3 (length tag))))))
 
@@ -80,7 +84,7 @@
   "Insert html tag with attributes."
   (let ((tag (symbol-name tag))
 	(attrs (pp-html--plist->alist attrs)))
-    (if (member tag pp-html--single-tag-list)
+    (if (member tag pp-html-single-tag-list)
 	(progn
 	  (insert (concat "<" tag "/>"))
 	  (backward-char 2)
@@ -174,17 +178,8 @@ Destructive."
   "process template logic"
   (let ((logic (car list))
 	(left (cdr list)))
-    (cond
-     ((eq logic :include)
-      (pp-html--process-logic-include left))
-     ((eq logic :if)
-      (pp-html--process-logic-if left))
-     ((eq logic :for)
-      (pp-html--process-logic-for left))
-     ((eq logic :block)
-      (pp-html--process-logic-block left))
-     ((eq logic :extend)
-      (pp-html--process-logic-extend left)))
+    (if (member logic pp-html-logic-tag-list)
+	(funcall (read (concat "pp-html--process-logic-" (substring (symbol-name logic) 1))) left))
     ))
 
 ;; Process tag list.
