@@ -41,28 +41,28 @@
       `((div :id "article-div"
 	     (header (h1 :class "title" ,title))
 	     (div :class "post-meta" (p ,post-meta))
-	     (div :class "post-content" (:include ,post-content)))))
+	     (div :class "post-content" (:include post-content)))))
 
 (setq new-article
       '((div :id "article-div"
 	     "this is another structure.")))
 
 (setq postamble
-      `((:if ,comment (:include ,comment-div))))
+      `((:if ,comment (:include comment-div))))
 
 (setq base-html
       `(html :lang "en"
 	     (head
-	      (:include ,header))
+	      (:include header))
 	     (body
-	      (:include ,menubar)
+	      (:include menubar)
 	      (:block main
-		      (:include ,article))
-	      (:include ,postamble))))
+		      (:include article))
+	      (:include postamble))))
 
 (setq extend-html
       `(:extend ,base-html
-		(:block main (:include ,new-article))))
+		(:block main (:include new-article))))
 
 (pp-html extend-html)
 #+END_SRC
