@@ -1,4 +1,4 @@
-;;; pp-html.el --- Pretty print html with emacs lisp list.
+;;; pp-html.el --- Pretty print html using sexps with the function `pp-html':
 
 ;; Copyright (C) 2020 Kinney Zhang, all rights reserved.
 
@@ -23,14 +23,28 @@
 
 ;;; Commentary:
 
-;; This package is a utility for pretty printing html with emacs
-;; lisp list. The function `pp-html' allows you to print a complex
+;; This package is a utility for pretty print html with emacs sexps.
+;; The function `pp-html' allows you to print a complex
 ;; html page by using simple elisp list form. Some stuff link Django's
 ;; template tag feature are also added to elisp lisp when print.
 
+;; (pp-html '(link :async nil :href "url"))
+;; => "<link async href=\"url\"/>"
+
+;; (pp-html '(div :class "post" "post content ..."))
+;; => "<div class=\"post\">post content ...</div>"
+
+;; (pp-html '(div :class "post"
+;;             (p :class "parah"
+;;               (span "span content"))))
+;; => "<div class=\"post\">
+;;      <p class=\"parah\">
+;;        <span>span content</span>
+;;      </p>
+;;     </div>"
+
 ;;; Code:
 (require 'web-mode)
-(require 'sgml-mode)
 
 (defvar pp-html-single-tag-list
   '("img" "br" "hr" "input" "meta" "link" "param")
@@ -247,6 +261,7 @@ Destructive."
 	    (pp-html--has-context-newline)
 	    (setq pos (point))))))))
 
+;;;###autoload
 (defun pp-html (LIST)
   "Pretty print html."
   (let ((html (pp-html-unformatted LIST)))
@@ -256,6 +271,7 @@ Destructive."
     (kill-buffer "*pp-html-temp*")
     html))
 
+;;;###autoload
 (defun pp-html-test (LIST)
   "Preview printed html in a view buffer."
   (ignore-errors (kill-buffer "*pp-html-test*"))

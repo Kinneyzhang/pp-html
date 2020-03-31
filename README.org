@@ -1,6 +1,6 @@
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://blog.geekinney.com/static/light.css"/>
 * pp-html
-Pp means pretty print. Pp-html is a utility which allows you to handly print simple html code or a complex html page with emacs lisp list form. You can using some logic tags like Django's template tag in list form, such as =:include= =:if= =:for= =:extend= and so on. These logic tags make it possible to print complex html pages as you like.
+Pp means pretty print. Pp-html is a utility which allows you to handly print simple html code or a complex html page with emacs lisp sexp form. You can using some logic tags like Django's template tag in sexp form, such as =:include= =:if= =:for= =:extend= and so on. These logic tags make it possible to print complex html pages as you like.
 
 Note, pp-html depend on web-mode, you need to make sure web-mode has been installed first.
 
