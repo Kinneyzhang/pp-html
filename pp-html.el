@@ -61,7 +61,7 @@
   "Html doctype.")
 
 (defvar pp-html-filter-list
-  '(:add :addslashes :capfirst))
+  '(:add :date))
 
 (defun pp-html--symbol-initial (sym)
   "Get the initial charactor of a symbol."
@@ -138,8 +138,8 @@
     (eval (intern (pp-html--symbol-rest el))))
    ((pp-html--func-p el)
     (pp-html--func-eval el))
-   ((pp-html--filter-p el)
-    (pp-html--filter-eval el))
+   ;; ((pp-html--filter-p el)
+   ;;  (pp-html--filter-eval el))
    (t el)))
 
 (defun pp-html--get-css-selector (sexp)
@@ -184,7 +184,7 @@
 	 (s-len (length (pp-html--get-css-selector sexp)))
 	 (sexp (nthcdr s-len sexp)))
     (while
-	(and (pp-html--eval (nth i sexp))
+	(and (nth i sexp)
 	     (symbolp (pp-html--eval (nth i sexp)))
 	     (string= ":" (pp-html--symbol-initial (pp-html--eval (nth i sexp)))))
       (let ((key (pp-html--eval (nth i sexp))))
