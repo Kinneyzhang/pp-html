@@ -73,6 +73,7 @@
   (if (symbolp sym)
       (substring (symbol-name sym) 1)))
 
+;; pp-html evaluation
 (defun pp-html--var-p (el)
   "Jude if a element is a variable."
   (if (symbolp el)
@@ -82,7 +83,8 @@
 (defun pp-html--filter-p (el)
   "Judge if a element is a filter."
   (if (listp el)
-      (if (null (symbolp (pp-html--eval (car el)))) t nil)
+      (if (and (eq '/ (car el)))
+	  t nil)
     nil))
 
 (defun pp-html--filter-alist (plist)
@@ -100,15 +102,15 @@
 
 (defun pp-html--filter-eval (el)
   "Evalute pp-html filter."
-  (let* ((target (pp-html--eval (car el)))
-	 (plist (pp-html--eval (cdr el)))
+  (let* ((target (pp-html--eval (cadr el)))
+	 (plist (cddr el))
 	 (alist (pp-html--filter-alist plist)))
     (dolist (filter alist)
       (if (null (cadr filter))
 	  (setq target
 		(funcall (read (concat "pp-html-filter-" (pp-html--symbol-rest (car filter)))) target))
 	(setq target
-	      (funcall (read (concat "pp-html-filter-" (pp-html--symbol-rest (car filter)))) (pp-html--eval (cadr filter)) target))))
+	      (funcall (read (concat "pp-html-filter-" (pp-html--symbol-rest (car filter)))) (cadr filter) target))))
     target))
 
 (defun pp-html--func-p (el)
@@ -138,10 +140,11 @@
     (eval (intern (pp-html--symbol-rest el))))
    ((pp-html--func-p el)
     (pp-html--func-eval el))
-   ;; ((pp-html--filter-p el)
-   ;;  (pp-html--filter-eval el))
+   ((pp-html--filter-p el)
+    (pp-html--filter-eval el))
    (t el)))
 
+;; process css selector
 (defun pp-html--get-css-selector (sexp)
   "Get css selector of a sexp."
   (let ((i 0)
@@ -223,14 +226,19 @@
       (forward-char (+ 3 (length elem))))))
 
 ;; Insert html function.
-
 (defun pp-html--insert-html-attrs (alist)
   "Insert html attributes."
   (dolist (attr alist)
-    (let ((key (pp-html--symbol-rest (car attr))))
-      (if (null (cadr attr))
+    (let ((key (pp-html--symbol-rest (car attr)))
+	  (val (pp-html--eval (cadr attr))))
+      (if (null val)
 	  (insert (concat " " key))
-	(insert (concat " " key "=" "\"" (pp-html--eval (cadr attr)) "\""))))))
+	(if (numberp val)
+	    (insert
+	     (concat " " key "=" "\"" (number-to-string val) "\""))
+	  (insert
+	   (concat " " key "=" "\"" val "\"")))
+	))))
 
 (defun pp-html--insert-html-elem (elem &optional plist)
   "Insert html elem with attributes."
@@ -332,9 +340,12 @@
     (with-current-buffer (get-buffer-create "*pp-html-temp*")
       (pp-html--insert-html-elem elem plist)
       (dolist (item inner)
-	(if (listp (pp-html--eval item))
-	    (pp-html-process-sexp item)
-	  (insert (pp-html--eval item))))
+	(let ((item (pp-html--eval item)))
+	  (if (listp item)
+	      (pp-html-process-sexp item)
+	    (if (numberp item)
+		(insert (number-to-string item))
+	      (insert item)))))
       (pp-html--jump-outside elem)
       (buffer-substring-no-properties (point-min) (point-max)))))
 
