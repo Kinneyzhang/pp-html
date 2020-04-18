@@ -33,8 +33,6 @@
 (require 'web-mode)
 (require 'pp-html-filter)
 
-(defvar pp-html-xml-p nil)
-
 (defvar pp-html-html5-element-list
   '("html"
     "head" "title" "base" "link" "meta" "style"
@@ -62,6 +60,9 @@
 
 (defvar pp-html-filter-list
   '(:add :date))
+
+(defvar pp-html-xml-p nil
+  "Whether to print xml.")
 
 (defun pp-html--symbol-initial (sym)
   "Get the initial charactor of a symbol."
@@ -221,9 +222,11 @@
 (defun pp-html--jump-outside (elem)
   "Jump outside of a html elem"
   (let ((elem (symbol-name elem)))
-    (if (member elem pp-html-empty-element-list)
-	(forward-char 0)
-      (forward-char (+ 3 (length elem))))))
+    (if pp-html-xml-p
+	(forward-char (+ 3 (length elem)))
+      (if (member elem pp-html-empty-element-list)
+	  (forward-char 0)
+	(forward-char (+ 3 (length elem)))))))
 
 ;; Insert html function.
 (defun pp-html--insert-html-attrs (alist)
@@ -245,22 +248,30 @@
   (let ((elem (symbol-name elem))
 	(alist (pp-html--plist->alist plist))
 	(doctype ""))
-    (if (or (eq pp-html-xml-p t) (member elem pp-html-empty-element-list))
+    (if pp-html-xml-p
 	(progn
-	  (insert (concat "<" elem "/>"))
-	  (backward-char 2)
+	  (insert (concat "<" elem ">" "</" elem ">"))
+	  (backward-char (+ 4 (length elem)))
 	  (if alist (pp-html--insert-html-attrs alist))
-	  (forward-char 2))
-      (progn
-	(if (string= elem "html")
-	    (progn
-	      (dolist (doc-info pp-html-html-doctype-param)
-		(setq doctype (concat doctype " " doc-info)))
-	      (insert (concat "<!DOCTYPE" doctype ">" "<" elem ">" "</" elem ">")))
-	  (insert (concat "<" elem ">" "</" elem ">")))
-	(backward-char (+ 4 (length elem)))
-	(if alist (pp-html--insert-html-attrs alist))
-	(forward-char 1)))
+	  (forward-char 1))
+      (if (member elem pp-html-empty-element-list)
+	  (progn
+	    (insert (concat "<" elem "/>"))
+	    (backward-char 2)
+	    (if alist (pp-html--insert-html-attrs alist))
+	    (forward-char 2))
+	(progn
+	  (if (string= elem "html")
+	      (progn
+		(dolist (doc-info pp-html-html-doctype-param)
+		  (setq doctype (concat doctype " " doc-info)))
+		(insert (concat "<!DOCTYPE" doctype ">" "<" elem ">" "</" elem ">")))
+	    (if (member elem pp-html-html5-element-list)
+		(insert (concat "<" elem ">" "</" elem ">"))
+	      (error "Invalid html tag!")))
+	  (backward-char (+ 4 (length elem)))
+	  (if alist (pp-html--insert-html-attrs alist))
+	  (forward-char 1))))
     ))
 
 ;; Process logic list.
@@ -352,10 +363,9 @@
 (defun pp-html-process-sexp (sexp)
   "Process sexp to unformatted html"
   (let ((car (car (pp-html--eval sexp))))
-    (if (member (symbol-name car) pp-html-html5-element-list)
-	(pp-html--process-elem sexp))
     (if (member car pp-html-logic-element-list)
-	(pp-html--process-logic sexp))))
+	(pp-html--process-logic sexp)
+      (pp-html--process-elem sexp))))
 
 ;; Format html string.
 (defun pp-html--has-child-p ()
@@ -394,36 +404,81 @@
 	      (skip-chars-forward "^>")
 	      (forward-char)
 	      (newline)
-	      (setq pos (point))
 	      (pp-html--has-context-newline)
 	      (setq pos (point)))
 	  (progn
 	    (web-mode-element-end)
 	    (newline)
-	    (setq pos (point))
 	    (pp-html--has-context-newline)
 	    (setq pos (point))))))))
+
+;;; Format xml string
+(defun pp-html-xml--has-child-p ()
+  (save-excursion
+    (forward-char)
+    (skip-chars-forward "^<")
+    (forward-char)
+    (if (string= "/" (thing-at-point 'char)) nil t)))
+
+(defun pp-html-xml--close-tag-p ()
+  (save-excursion
+    (forward-char)
+    (if (string= "/" (thing-at-point 'char)) t nil)))
+
+(defun pp-html-format-xml ()
+  "Well format xml string."
+  (let ((pos (point-min)))
+    (with-current-buffer (get-buffer-create "*pp-html-temp*")
+      (nxml-mode)
+      (goto-char (point-min))
+      (while (< pos (point-max))
+	(if (pp-html-xml--close-tag-p)
+	    (progn
+	      (skip-chars-forward "^>")
+	      (forward-char)
+	      (newline)
+	      (pp-html--has-context-newline)
+	      (setq pos (point)))
+	  (if (pp-html-xml--has-child-p)
+	      (progn
+		(nxml-down-element)
+		(newline)
+		(pp-html--has-context-newline)
+		(setq pos (point)))
+	    (progn
+	      (nxml-forward-element)
+	      (newline)
+	      (pp-html--has-context-newline)
+	      (setq pos (point)))))))))
 
 ;;;###autoload
 (defun pp-html (sexp &optional xml-p)
   "Pretty print html."
-  (let* ((pp-html-xml-p xml-p)
-	 (html (pp-html-process-sexp sexp)))
+  (setq pp-html-xml-p xml-p)
+  (ignore-errors (kill-buffer "*pp-html-temp*"))
+  (let ((html (pp-html-process-sexp sexp)))
     (with-current-buffer (get-buffer-create "*pp-html-temp*")
-      (pp-html-format-html)
+      (if pp-html-xml-p
+	  (progn
+	    (pp-html-format-xml)
+	    (goto-char (point-min))
+	    (insert "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"))
+	(pp-html-format-html))
       (setq html (buffer-substring-no-properties (point-min) (point-max))))
-    (kill-buffer "*pp-html-temp*")
+    (ignore-errors (kill-buffer "*pp-html-temp*"))
     html))
 
 ;;;###autoload
-(defun pp-html-test (sexp)
+(defun pp-html-test (sexp &optional xml-p)
   "Preview printed html in a view buffer."
   (ignore-errors (kill-buffer "*pp-html-test*"))
   (with-current-buffer (get-buffer-create "*pp-html-test*")
-    (web-mode)
-    (insert (pp-html sexp))
+    (if xml-p
+	(nxml-mode)
+      (web-mode))
+    (insert (pp-html sexp xml-p))
     (indent-region-or-buffer))
-  (view-buffer "*pp-html-test*"))
+  (view-buffer "*pp-html-test*" 'kill-buffer))
 
 (provide 'pp-html)
 
