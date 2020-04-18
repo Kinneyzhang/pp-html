@@ -145,70 +145,60 @@
     (pp-html--filter-eval el))
    (t el)))
 
-;; process css selector
-(defun pp-html--get-css-selector (sexp)
-  "Get css selector of a sexp."
-  (let ((i 0)
-	(selector nil))
-    (catch 'break
-      (while (and (pp-html--eval (nth i sexp)) (pp-html--eval (symbolp (nth i sexp))))
-	(let ((sel (pp-html--eval (nth i sexp))))
-	  (if (or (string= "." (pp-html--symbol-initial sel))
-		  (string= "@" (pp-html--symbol-initial sel)))
-	      (progn
-		(setq selector (append selector (list sel)))
-		(incf i))
-	    (throw 'break selector)))))
-    selector))
-
-(defun pp-html--selector->plist (selector)
-  "Convert css selector to plist."
-  (let ((selector-plist)
-	(class-str "")
-	(count 0))
-    (dolist (s selector)
-      (if (string= (pp-html--symbol-initial s) "@")
-	  (setq selector-plist
-		(append selector-plist (list :id (pp-html--symbol-rest s)))))
-      (if (string= (pp-html--symbol-initial s) ".")
-	  (progn
-	    (incf count)
-	    (if (= count 1)
-		(setq class-str (concat class-str (pp-html--symbol-rest s)))
-	      (setq class-str (concat class-str " " (pp-html--symbol-rest s)))))))
-    (if (string= "" class-str)
-	selector-plist
-      (append selector-plist (list :class class-str)))))
-
 ;; some utilities
 (defun pp-html--get-attr-plist (sexp)
   "Get attributes plist of a sexp."
-  (let* ((i 0)
-	 (plist)
-	 (s-len (length (pp-html--get-css-selector sexp)))
-	 (sexp (nthcdr s-len sexp)))
-    (while
-	(and (nth i sexp)
-	     (symbolp (pp-html--eval (nth i sexp)))
-	     (string= ":" (pp-html--symbol-initial (pp-html--eval (nth i sexp)))))
-      (let ((key (pp-html--eval (nth i sexp))))
-	(setq value (nth (1+ i) sexp))
-	(setq plist (append plist (list key value)))
-	(incf i 2)))
-    plist))
+  (let ((i 0)
+	(plist))
+    (while (and (nth i sexp) (symbolp (pp-html--eval (nth i sexp))))
+      (let ((item (pp-html--eval (nth i sexp))))
+	(cond
+	 ((string= "@" (pp-html--symbol-initial item))
+	  (setq plist (append plist (list :id (pp-html--symbol-rest item))))
+	  (incf i))
+	 ((string= "." (pp-html--symbol-initial item))
+	  (setq plist (append plist (list :class (pp-html--symbol-rest item))))
+	  (incf i))
+	 ((string= ":" (pp-html--symbol-initial item))
+	  (let ((attr item)
+		(next (pp-html--eval (nth (1+ i) sexp))))
+	    (if (or (numberp next) (stringp next))
+		(progn
+		  (setq plist
+			(append plist (list attr next)))
+		  (incf i 2))
+	      (progn
+		(setq plist (append plist (list attr nil)))
+		(incf i))))))))
+    (list i plist)))
 
-(defun pp-html--get-whole-plist (sexp)
-  "Get the whole html attr plist."
-  (let* ((selector-plist (pp-html--selector->plist (pp-html--get-css-selector sexp)))
-	 (attr-plist (pp-html--get-attr-plist sexp))
-	 (plist (append selector-plist attr-plist)))
+(defun pp-html--whole-attr-plist (sexp)
+  "Combine all css selector class."
+  (let ((i 0)
+	(pos)
+	(class-val "")
+	(plist (cadr (pp-html--get-attr-plist sexp))))
+    (while (nth i plist)
+      (if (eq :class (nth i plist))
+	  (setq pos (append pos (list i))))
+      (incf i 2))
+    (when (> (length pos) 1)
+      (dolist (p pos)
+	(let ((val (nth (1+ p) plist)))
+	  (if (numberp val)
+	      (setq class-val (concat class-val (number-to-string val) " "))
+	    (setq class-val (concat class-val val " ")))))
+      (setq class-val (substring class-val 0 -1))
+      (setf (nth (1+ (nth 0 pos)) plist) class-val)
+      (let* ((remove-pos1 (-remove-at-indices '(0) pos))
+	     (remove-pos2 (-map '1+ remove-pos1))
+	     (remove-pos (append remove-pos1 remove-pos2)))
+	(setq plist (-remove-at-indices remove-pos plist))))
     plist))
 
 (defun pp-html--get-child-sexp (sexp)
   "Get inner content of a html tag."
-  (let* ((s-len (length (pp-html--get-css-selector sexp)))
-	 (p-len (length (pp-html--get-attr-plist sexp)))
-	 (len (+ s-len p-len)))
+  (let ((len (car (pp-html--get-attr-plist sexp))))
     (nthcdr len sexp)))
 
 (defun pp-html--plist->alist (plist)
@@ -346,7 +336,7 @@
 (defun pp-html--process-elem (sexp)
   "Process html elem."
   (let ((elem (car sexp))
-	(plist (pp-html--get-whole-plist (cdr sexp)))
+	(plist (pp-html--whole-attr-plist (cdr sexp)))
 	(inner (pp-html--get-child-sexp (cdr sexp))))
     (with-current-buffer (get-buffer-create "*pp-html-temp*")
       (pp-html--insert-html-elem elem plist)
