@@ -30,6 +30,53 @@
 
 ;;; Code:
 
+(defvar pp-html-filter-list
+  '(:add :date)
+  "Filter function tag.")
+
+;; filter evaluation
+(defun pp-html--filter-p (el)
+  "Judge if a element is a filter."
+  (if (listp el)
+      (if (and (eq '/ (car el)))
+	  t nil)
+    nil))
+
+(defun pp-html--filter-alist (plist)
+  "Make filter plist to alist"
+  (if (null plist)
+      '()
+    (if (member (car plist) pp-html-filter-list)
+	(if (not (member (cadr plist) pp-html-filter-list))
+	    (cons
+	     (list (car plist) (cadr plist))
+	     (pp-html--filter-alist (cddr plist)))
+	  (cons
+	   (list (car plist))
+	   (pp-html--filter-alist (cdr plist)))))))
+
+(defun pp-html--filter-eval (el)
+  "Evalute pp-html filter."
+  (let* ((target (pp-html--eval (cadr el)))
+	 (plist (cddr el))
+	 (alist (pp-html--filter-alist plist)))
+    (dolist (filter alist)
+      (if (null (cadr filter))
+	  (setq target
+		(funcall (read (concat "pp-html-filter-" (pp-html--symbol-rest (car filter)))) target))
+	(setq target
+	      (funcall (read (concat "pp-html-filter-" (pp-html--symbol-rest (car filter)))) (cadr filter) target))))
+    target))
+
+
+;; Add filter macro.
+(defmacro pp-html-add-filter (name func)
+  "Add pp-html filter."
+  (if (member name pp-html-filter-list)
+      (add-to-list pp-html-filter-list name)
+    pp-html-filter-list))
+
+;; filter functions
 (defun pp-html-filter-add (param target)
   (let ((param (if (stringp param)
 		   (string-to-number param)

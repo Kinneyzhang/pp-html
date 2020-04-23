@@ -52,14 +52,11 @@
   "Html5 empty element list, from https://developer.mozilla.org/zh-CN/docs/Glossary/空元素")
 
 (defvar pp-html-logic-element-list
-  '(:include :if :for :block :extend)
+  '(:assign :include :if :unless :for :cond :block :extend)
   "Supported pp-html logic element list.")
 
 (defvar pp-html-html-doctype-param '("html")
   "Html doctype.")
-
-(defvar pp-html-filter-list
-  '(:add :date))
 
 (defvar pp-html-xml-p nil
   "Whether to print xml.")
@@ -80,39 +77,6 @@
   (if (symbolp el)
       (if (string= "$" (pp-html--symbol-initial el)) t nil)
     nil))
-
-(defun pp-html--filter-p (el)
-  "Judge if a element is a filter."
-  (if (listp el)
-      (if (and (eq '/ (car el)))
-	  t nil)
-    nil))
-
-(defun pp-html--filter-alist (plist)
-  "Make filter plist to alist"
-  (if (null plist)
-      '()
-    (if (member (car plist) pp-html-filter-list)
-	(if (not (member (cadr plist) pp-html-filter-list))
-	    (cons
-	     (list (car plist) (cadr plist))
-	     (pp-html--filter-alist (cddr plist)))
-	  (cons
-	   (list (car plist))
-	   (pp-html--filter-alist (cdr plist)))))))
-
-(defun pp-html--filter-eval (el)
-  "Evalute pp-html filter."
-  (let* ((target (pp-html--eval (cadr el)))
-	 (plist (cddr el))
-	 (alist (pp-html--filter-alist plist)))
-    (dolist (filter alist)
-      (if (null (cadr filter))
-	  (setq target
-		(funcall (read (concat "pp-html-filter-" (pp-html--symbol-rest (car filter)))) target))
-	(setq target
-	      (funcall (read (concat "pp-html-filter-" (pp-html--symbol-rest (car filter)))) (cadr filter) target))))
-    target))
 
 (defun pp-html--func-p (el)
   "Jude if a element is a function."
@@ -256,9 +220,9 @@
 		(dolist (doc-info pp-html-html-doctype-param)
 		  (setq doctype (concat doctype " " doc-info)))
 		(insert (concat "<!DOCTYPE" doctype ">" "<" elem ">" "</" elem ">")))
-	    (if (member elem pp-html-html5-element-list)
+	    (if (or (null (read elem)) (member elem pp-html-html5-element-list))
 		(insert (concat "<" elem ">" "</" elem ">"))
-	      (error "Invalid html tag!")))
+	      (error (format "Invalid html tag: %s" elem))))
 	  (backward-char (+ 4 (length elem)))
 	  (if alist (pp-html--insert-html-attrs alist))
 	  (forward-char 1))))
@@ -274,6 +238,14 @@
        (-setq x x)))
    sexp))
 
+(defun pp-html--process-logic-assign (left)
+  "Process :assign logic"
+  (let ((alist (pp-html--plist->alist left)))
+    (dolist (lst alist)
+      (let ((var (car lst))
+	    (val (pp-html--eval (cadr lst))))
+	(set var val)))))
+
 (defun pp-html--process-logic-include (left)
   "Process :include logic."
   (dolist (item (pp-html--eval (car left)))
@@ -281,20 +253,36 @@
 
 (defun pp-html--process-logic-if (left)
   "Process :if logic."
-  (if (pp-html--eval (car left))
-      (pp-html-process-sexp (cadr left))
-    (pp-html-process-sexp (cadr (cdr left)))))
+  (if (pp-html--eval (nth 0 left))
+      (pp-html-process-sexp (nth 1 left))
+    (if (pp-html--eval (nth 2 left))
+      (pp-html-process-sexp (nth 2 left)))))
+
+(defun pp-html--process-logic-unless (left)
+  "Process :unless logic."
+  (if (not (pp-html--eval (nth 0 left)))
+      (pp-html-process-sexp (nth 1 left))
+    (if (pp-html--eval (nth 2 left))
+	(pp-html-process-sexp (nth 2 left)))))
+
+(defun pp-html--process-logic-cond (left)
+  "Process :cond logic"
+  (let ((cases (pp-html--plist->alist left)))
+    ))
 
 (defun pp-html--process-logic-for (left)
-  "Process :for logic"
+  "Process :for logic."
   (let ((res)
-	(el (pp-html--eval (car left)))
-	(lst (pp-html--eval (cadr left)))
-	(target (pp-html--eval (cadr (cdr left)))))
-    (dolist (x lst)
-      (setq res (pp-html-sexp-replace el x target))
-      (pp-html-process-sexp res)
-      )))
+	(el (pp-html--eval (nth 0 left)))
+	(in (nth 1 left))
+	(lst (pp-html--eval (nth 2 left)))
+	(target (pp-html--eval (nth 3 left)))
+	(len (length left)))
+    (if (and (= len 4) (eq 'in in))
+	(dolist (x lst)
+	  (setq res (pp-html-sexp-replace el x target))
+	  (pp-html-process-sexp res))
+      (error "error pp-html :for syntax!"))))
 
 (defun pp-html--process-logic-block (left)
   "Process :block logic."
@@ -304,27 +292,28 @@
 (defun pp-html--process-logic-extend (left)
   "Process :extend logic."
   (let* ((base-str (prin1-to-string (pp-html--eval (car left))))
-	 (entend-str
-	  (with-temp-buffer
-	    (insert base-str)
-	    (setq point (goto-char (point-min)))
-	    (while point
-	      (dolist (item (cdr left))
-		(setq name (symbol-name (cadr item)))
-		(setq block (prin1-to-string (cadr (cdr item))))
-		(setq point (re-search-forward ":block" nil t))
-		(skip-chars-forward "[\" \"\n\t\r]")
-		(if (string= name (thing-at-point 'symbol))
-		    (progn
-		      (skip-chars-forward "[a-zA-Z]")
-		      (skip-chars-forward "[\" \"\n\t\r]")
-		      (setq sexp-beg (point))
-		      (ignore-errors (forward-sexp))
-		      (setq sexp-end (point))
-		      (kill-region sexp-beg sexp-end)
-		      (insert block)))))
-	    (buffer-substring-no-properties (point-min) (point-max)))))
-    (pp-html-process-sexp (read entend-str))))
+	 (blocks (cdr left))
+	 (extend-str base-str)
+	 (point))
+    (when blocks
+      (with-temp-buffer
+	(emacs-lisp-mode)
+	(insert base-str)
+	(setq point (goto-char (point-min)))
+	(while point
+	  (dolist (item blocks)
+	    (let ((block-name (symbol-name (cadr item)))
+		  (extend-block (prin1-to-string (cadr (cdr item)))))
+	      (setq point (re-search-forward ":block" nil t))
+	      (skip-chars-forward "[\" \"\n\t\r]")
+	      (if (string= block-name (thing-at-point 'symbol))
+		  (progn
+		    (forward-symbol 1)
+		    (skip-chars-forward "^(")
+		    (kill-sexp)
+		    (insert extend-block))))
+	    (setq extend-str (buffer-substring-no-properties (point-min) (point-max)))))))
+    (pp-html-process-sexp (read extend-str))))
 
 (defun pp-html--process-logic (sexp)
   "process template logic"
@@ -467,7 +456,7 @@
 	(nxml-mode)
       (web-mode))
     (insert (pp-html sexp xml-p))
-    (indent-region-or-buffer))
+    (indent-region (point-min) (point-max)))
   (view-buffer "*pp-html-test*" 'kill-buffer))
 
 (provide 'pp-html)
