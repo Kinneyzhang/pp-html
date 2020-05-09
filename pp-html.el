@@ -33,7 +33,7 @@
 (require 'web-mode)
 (require 'pp-html-filter)
 
-(defvar pp-html-html5-element-list
+(defvar pp-html-html5-elements
   '("html"
     "head" "title" "base" "link" "meta" "style"
     "script" "noscript" "template"
@@ -46,6 +46,11 @@
     "form" "fieldset" "legend" "label" "input" "button" "select" "datalist" "optgroup" "option" "textarea" "output" "progress" "meter"
     "details" "summary" "menuitem" "menu")
   "html5 element list, from https://developer.mozilla.org/zh-CN/docs/Web/Guide/HTML/HTML5/HTML5_element_list")
+
+(defvar pp-html-other-html-elements
+  '("meting-js"))
+
+;; add other html tag function!
 
 (defvar pp-html-empty-element-list
   '("area" "base" "br" "col" "colgroup" "embed" "hr" "img" "input" "link" "meta" "param" "source" "track" "wbr")
@@ -75,8 +80,26 @@
 (defun pp-html--var-p (el)
   "Jude if a element is a variable."
   (if (symbolp el)
-      (if (string= "$" (pp-html--symbol-initial el)) t nil)
+      (if (and
+	   (string= "$" (pp-html--symbol-initial el))
+	   (not (string= "" (pp-html--symbol-rest el))))
+	  t nil)
     nil))
+
+(defun pp-html--var-eval (el)
+  "Evaluate variable in pp-html."
+  (let* ((i 1)
+	 (var (intern (pp-html--symbol-rest el)))
+	 (var-str (symbol-name var))
+	 (lst (split-string var-str "[.]"))
+	 (res (eval (intern (nth 0 lst)))))
+    (if (= 1 (length lst))
+	(setq res (eval var))
+      (while (nth i lst)
+	(let ((prop (intern (concat ":" (nth i lst)))))
+	  (setq res (eval `(plist-get ',res ,prop)))
+	  (incf i))))
+    res))
 
 (defun pp-html--func-p (el)
   "Jude if a element is a function."
@@ -89,7 +112,7 @@
   (-tree-map
    (lambda (p)
      (if (pp-html--var-p p)
-	 (setq p (pp-html--eval p))
+	 (setq p (pp-html-eval p))
        (setq p p)))
    params))
 
@@ -98,11 +121,11 @@
   (let ((params (pp-html--func-param-eval (cddr el))))
     (eval `(funcall ',(cadr el) ,@params))))
 
-(defun pp-html--eval (el)
+(defun pp-html-eval (el)
   "General evaluation in pp-html."
   (cond
    ((pp-html--var-p el)
-    (eval (intern (pp-html--symbol-rest el))))
+    (pp-html--var-eval el))
    ((pp-html--func-p el)
     (pp-html--func-eval el))
    ((pp-html--filter-p el)
@@ -114,8 +137,8 @@
   "Get attributes plist of a sexp."
   (let ((i 0)
 	(plist))
-    (while (and (nth i sexp) (symbolp (pp-html--eval (nth i sexp))))
-      (let ((item (pp-html--eval (nth i sexp))))
+    (while (and (nth i sexp) (symbolp (pp-html-eval (nth i sexp))))
+      (let ((item (pp-html-eval (nth i sexp))))
 	(cond
 	 ((string= "@" (pp-html--symbol-initial item))
 	  (setq plist (append plist (list :id (pp-html--symbol-rest item))))
@@ -125,7 +148,7 @@
 	  (incf i))
 	 ((string= ":" (pp-html--symbol-initial item))
 	  (let ((attr item)
-		(next (pp-html--eval (nth (1+ i) sexp))))
+		(next (pp-html-eval (nth (1+ i) sexp))))
 	    (if (or (numberp next) (stringp next))
 		(progn
 		  (setq plist
@@ -187,7 +210,7 @@
   "Insert html attributes."
   (dolist (attr alist)
     (let ((key (pp-html--symbol-rest (car attr)))
-	  (val (pp-html--eval (cadr attr))))
+	  (val (pp-html-eval (cadr attr))))
       (if (null val)
 	  (insert (concat " " key))
 	(if (numberp val)
@@ -220,9 +243,12 @@
 		(dolist (doc-info pp-html-html-doctype-param)
 		  (setq doctype (concat doctype " " doc-info)))
 		(insert (concat "<!DOCTYPE" doctype ">" "<" elem ">" "</" elem ">")))
-	    (if (or (null (read elem)) (member elem pp-html-html5-element-list))
+	    (if (or (member elem pp-html-other-html-elements)
+		    (member elem pp-html-html5-elements))
 		(insert (concat "<" elem ">" "</" elem ">"))
-	      (error (format "Invalid html tag: %s" elem))))
+	      (if (null (read elem))
+		  (insert "")
+		(error (format "Invalid html tag: %s" elem)))))
 	  (backward-char (+ 4 (length elem)))
 	  (if alist (pp-html--insert-html-attrs alist))
 	  (forward-char 1))))
@@ -231,57 +257,75 @@
 ;; Process logic list.
 (defun pp-html-sexp-replace (old new sexp)
   "Replace all occurences of OLD by NEW in SEXP."
-  (-tree-map
-   (lambda (x)
-     (if (equal x old)
-	 (-setq x new)
-       (-setq x x)))
-   sexp))
+  (let ((lst)
+	(el))
+    (--tree-map-nodes
+     (when (pp-html--var-p it)
+       (setq lst (split-string (pp-html--symbol-rest it) "[.]"))
+       (setq el (intern (nth 0 lst)))
+       (equal el old))
+     (if (= 1 (length lst))
+	 (progn
+	   (eval `(setq ,el ,new))
+	   (-setq it (pp-html-eval it)))
+       (eval `(setq ,el ',new))
+       (-setq it (pp-html-eval it)))
+     sexp)))
 
 (defun pp-html--process-logic-assign (sexp)
   "Process :assign logic"
   (let ((alist (pp-html--plist->alist (cdr sexp))))
     (dolist (lst alist)
       (let ((var (car lst))
-	    (val (pp-html--eval (cadr lst))))
+	    (val (pp-html-eval (cadr lst))))
 	(set var val)))))
 
 (defun pp-html--process-logic-include (sexp)
   "Process :include logic."
-  (pp-html--eval (cadr sexp)))
+  (pp-html-eval (cadr sexp)))
 
 (defun pp-html--process-logic-if (sexp)
   "Process :if logic."
-  (if (pp-html--eval (nth 1 sexp))
-      (pp-html--eval (nth 2 sexp))
+  (if (pp-html-eval (nth 1 sexp))
+      (pp-html-eval (nth 2 sexp))
     (if (nth 3 sexp)
-	(pp-html--eval (nth 3 sexp)))))
+	(pp-html-eval (nth 3 sexp)))))
 
 (defun pp-html--process-logic-unless (sexp)
   "Process :unless logic."
-  (if (not (pp-html--eval (nth 1 sexp)))
-      (pp-html--eval (nth 2 sexp))
+  (if (not (pp-html-eval (nth 1 sexp)))
+      (pp-html-eval (nth 2 sexp))
     (if (nth 3 sexp)
-	(pp-html--eval (nth 3 sexp)))))
+	(pp-html-eval (nth 3 sexp)))))
+
+(defun pp-html--process-logic-cond (sexp)
+  "Process :cond logic."
+  (let ((len (length sexp))
+	(cases (cdr sexp))
+	(i 0)
+	(res))
+    (if (= 0 (% len 2))
+	(error "error pp-html :cond syntax!"))
+    (catch 'break
+      (while (nth i cases)
+	(when (pp-html-eval (nth i cases))
+	  (setq res (pp-html-eval (nth (1+ i) cases)))
+	  (throw 'break res))
+	(incf i 2)))))
 
 (defun pp-html--process-logic-for (sexp)
   "Process :for logic."
   (let ((res)
-	(el (pp-html--eval (nth 1 sexp)))
+	(el (pp-html-eval (nth 1 sexp)))
 	(in (nth 2 sexp))
-	(lst (pp-html--eval (nth 3 sexp)))
-	(target (pp-html--eval (nth 4 sexp)))
+	(lst (pp-html-eval (nth 3 sexp)))
+	(target (pp-html-eval (nth 4 sexp)))
 	(len (length sexp)))
     (if (and (= len 5) (eq 'in in))
-	(progn
-	  (dolist (x lst)
-	    (setq res (append res (list (pp-html-sexp-replace el x target)))))
-	  res)
+	(setq res (mapcar (lambda (x)
+			    (pp-html-sexp-replace el x target))
+			  lst))
       (error "error pp-html :for syntax!"))))
-
-;; (defun pp-html--process-logic-block (sexp)
-;;   "Process :block logic."
-;;   (pp-html--eval (nth 2 sexp)))
 
 (defun pp-html--process-logic-extend (sexp)
   "Process :extend logic."
@@ -296,22 +340,21 @@
 	(setq point (goto-char (point-min)))
 	(while point
 	  (dolist (item blocks)
-	    (let ((block-name (symbol-name (cadr item)))
-		  (extend-block (cadr (cdr item)))
-		  (extend-block-str (prin1-to-string (pp-html--eval (cadr (cdr item))))))
+	    (let* ((block-name (symbol-name (cadr item)))
+		   (extend-block (cadr (cdr item)))
+		   (extend-block-str (prin1-to-string (pp-html-eval extend-block))))
 	      (setq point (re-search-forward ":block" nil t))
 	      (skip-chars-forward "[\" \"\n\t\r]")
-	      (if (string= block-name (thing-at-point 'symbol))
-		  (progn
-		    (forward-symbol 1)
-		    (skip-chars-forward "^(")
-		    (let ((base-block-str (thing-at-point 'sexp)))
-		      (skip-chars-backward "^(")
-		      (backward-char)
-		      (kill-sexp)
-		      (if extend-block
-			  (insert extend-block-str)
-			(insert base-block-str))))))
+	      (when (string= block-name (thing-at-point 'symbol))
+		(forward-symbol 1)
+		(skip-chars-forward "^(")
+		(let ((base-block-str (thing-at-point 'sexp)))
+		  (skip-chars-backward "^(")
+		  (backward-char)
+		  (kill-sexp)
+		  (if extend-block
+		      (insert extend-block-str)
+		    (insert base-block-str)))))
 	    (setq extend-str (buffer-string))))))
     (read extend-str)))
 
@@ -325,7 +368,7 @@
 ;;;###autoload
 (defun pp-html-parse (sexp)
   "Process all logic element."
-  (let* ((sexp (pp-html--eval sexp))
+  (let* ((sexp (pp-html-eval sexp))
 	 (new-sexp (pp-html--process-logic sexp)))
     (if (not (equal sexp new-sexp))
 	(pp-html-parse new-sexp)
@@ -358,7 +401,7 @@
     (with-current-buffer (get-buffer-create "*pp-html-temp*")
       (pp-html--insert-html-elem elem plist)
       (dolist (item inner)
-	(let ((item (pp-html--eval item)))
+	(let ((item (pp-html-eval item)))
 	  (if (listp item)
 	      (pp-html-process-sexp item)
 	    (if (numberp item)
@@ -370,7 +413,7 @@
 
 (defun pp-html-process-sexp (sexp)
   "Process pp-html sexp"
-  (let* ((car (pp-html--eval (car-safe sexp))))
+  (let* ((car (pp-html-eval (car-safe sexp))))
     (if (and car (listp car))
 	(dolist (item sexp)
 	  (pp-html-process-sexp item))

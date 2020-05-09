@@ -30,9 +30,21 @@
 
 ;;; Code:
 
+(require 's)
+
 (defvar pp-html-filter-list
-  '(:add :date)
-  "Filter function tag.")
+      '((:add pp-html-filter-add)
+	(:abs pp-html-filter-abs)
+	(:append pp-html-filter-concat)
+	(:capitalize pp-html-filter-capitalize)
+	(:compact pp-html-filter-compact)
+	(:concat pp-html-filter-concat)
+	(:default pp-html-filter-default)
+	(:downcase pp-html-filter-downcase)
+	(:upcase pp-html-filter-upcase)
+	(:escape pp-html-filter-escape)
+	(:join pp-html-filter-join))
+      "Filter function tag.")
 
 ;; filter evaluation
 (defun pp-html--filter-p (el)
@@ -46,8 +58,8 @@
   "Make filter plist to alist"
   (if (null plist)
       '()
-    (if (member (car plist) pp-html-filter-list)
-	(if (not (member (cadr plist) pp-html-filter-list))
+    (if (assoc (car plist) pp-html-filter-list)
+	(if (not (assoc (cadr plist) pp-html-filter-list))
 	    (cons
 	     (list (car plist) (cadr plist))
 	     (pp-html--filter-alist (cddr plist)))
@@ -55,33 +67,88 @@
 	   (list (car plist))
 	   (pp-html--filter-alist (cdr plist)))))))
 
-(defun pp-html--filter-eval (el)
+(defun pp-html--filter-eval (sexp)
   "Evalute pp-html filter."
-  (let* ((target (pp-html--eval (cadr el)))
-	 (plist (cddr el))
+  (let* ((value (pp-html-eval (cadr sexp)))
+	 (plist (cddr sexp))
 	 (alist (pp-html--filter-alist plist)))
     (dolist (filter alist)
       (if (null (cadr filter))
-	  (setq target
-		(funcall (read (concat "pp-html-filter-" (pp-html--symbol-rest (car filter)))) target))
-	(setq target
-	      (funcall (read (concat "pp-html-filter-" (pp-html--symbol-rest (car filter)))) (cadr filter) target))))
-    target))
+	  (progn
+	    (setq value
+		  (funcall (cadr (assoc (car filter) pp-html-filter-list)) value)))
+	(setq value
+	      (funcall (cadr (assoc (car filter) pp-html-filter-list)) value (cadr filter)))))
+    value))
 
-
-;; Add filter macro.
-(defmacro pp-html-add-filter (name func)
+;;;###autoload
+(defun pp-html-define-filter (filter func)
   "Add pp-html filter."
-  (if (member name pp-html-filter-list)
-      (add-to-list pp-html-filter-list name)
-    pp-html-filter-list))
+  (if (not (assoc filter pp-html-filter-list))
+      (add-to-list 'pp-html-filter-list (list filter func))
+    (error "Filter %s already defined!" filter)))
 
 ;; filter functions
-(defun pp-html-filter-add (param target)
-  (let ((param (if (stringp param)
-		   (string-to-number param)
-		 param)))
-    (+ param target)))
+(defun pp-html-filter-abs (value)
+  "Return the absolute value of a number."
+  (let ((value (if (stringp value)
+		   (string-to-number value)
+		 value)))
+    (abs value)))
+
+(defun pp-html-filter-add (value arg)
+  "Add a value to a number"
+  (let ((arg (if (stringp arg)
+		 (string-to-number arg)
+	       arg)))
+    (+ value arg)))
+
+(defun pp-html-filter-append (value arg)
+  "Append a list to another one."
+  (append value arg))
+
+(defun pp-html-filter-capitalize (value)
+  "Convert the first word’s first character to upper case."
+  (s-capitalize value))
+
+(defun pp-html-filter-compact (value)
+  "Delete all nil in a list."
+  (delete nil value))
+
+(defun pp-html-filter-concat (value)
+  "Join two string together."
+  (concat value (pp-html-eval arg)))
+
+(defun pp-html-filter-default (value arg)
+  "If value is nil or null string, set default value."
+  (if (or (string= "" value) (null value))
+      arg
+    value))
+
+(defun pp-html-filter-downcase (value)
+  "Convert all chars in string to lower case."
+  (downcase value))
+
+(defun pp-html-filter-upcase (value)
+  "Convert all chars in string to upper case."
+  (upcase value))
+
+(defun pp-html-filter-escape (value)
+  "Escapes a string by replacing characters with escape sequences."
+  (xml-escape-string value))
+
+(defun pp-html-filter-join (value arg)
+  "Combines the items in a list into a single string using the argument as a separator"
+  (let ((res (nth 0 value)))
+    (dolist (item value)
+      (setq res (concat res arg item)))
+    res))
+
+;; (defun pp-html-filter-lstrip (value)
+;;   "Removes all whitespace (tabs, spaces, and newlines) from a string"
+;;   )
+
+;; (defun pp-html-filter-map (value arg))
 
 (provide 'pp-html-filter)
 ;;; pp-html-filter.el ends here
