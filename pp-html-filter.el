@@ -1,12 +1,13 @@
-;;; pp-html-filter.el --- pp-html filter function.
+;;; pp-html-filter.el --- pp-html filter function
+;;; -*- coding: utf-8; lexical-binding: t; -*-
 
 ;; Copyright (C) 2020 Kinney Zhang
 ;;
-;; Version: 0.0.1
-;; Keywords: keyword1 keyword2
-;; Author: Kinney Zhang <kinneyzhang666 AT gmail DOT com>
-;; URL: http://github.com/usrname/pp-html-filter
-;; Package-Requires: ((emacs "24.4"))
+;; Version: 1.0
+;; Keywords: filter
+;; Author: Kinney Zhang <kinneyzhang666@gmail.com>
+;; URL: http://github.com/Kinneyzhang/pp-html
+;; Package-Requires: ((emacs "26.3") (s "1.12.0"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -35,7 +36,7 @@
 (defvar pp-html-filter-list
       '((:add pp-html-filter-add)
 	(:abs pp-html-filter-abs)
-	(:append pp-html-filter-concat)
+	(:append pp-html-filter-append)
 	(:capitalize pp-html-filter-capitalize)
 	(:compact pp-html-filter-compact)
 	(:concat pp-html-filter-concat)
@@ -78,7 +79,7 @@
 	    (setq value
 		  (funcall (cadr (assoc (car filter) pp-html-filter-list)) value)))
 	(setq value
-	      (funcall (cadr (assoc (car filter) pp-html-filter-list)) value (cadr filter)))))
+	      (funcall (cadr (assoc (car filter) pp-html-filter-list)) value (pp-html-eval (cadr filter))))))
     value))
 
 ;;;###autoload
@@ -115,13 +116,13 @@
   "Delete all nil in a list."
   (delete nil value))
 
-(defun pp-html-filter-concat (value)
+(defun pp-html-filter-concat (value arg)
   "Join two string together."
   (concat value (pp-html-eval arg)))
 
 (defun pp-html-filter-default (value arg)
   "If value is nil or null string, set default value."
-  (if (or (string= "" value) (null value))
+  (if (or (equal "" value) (null value))
       arg
     value))
 
@@ -140,16 +141,9 @@
 (defun pp-html-filter-join (value arg)
   "Combines the items in a list into a single string using the argument as a separator"
   (let ((res (nth 0 value)))
-    (dolist (item value)
+    (dolist (item (cdr value))
       (setq res (concat res arg item)))
     res))
 
-;; (defun pp-html-filter-lstrip (value)
-;;   "Removes all whitespace (tabs, spaces, and newlines) from a string"
-;;   )
-
-;; (defun pp-html-filter-map (value arg))
-
 (provide 'pp-html-filter)
 ;;; pp-html-filter.el ends here
-

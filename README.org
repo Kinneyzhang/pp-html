@@ -1,198 +1,394 @@
-#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://blog.geekinney.com/static/light.css"/>
-* pp-html
-Pp means pretty print. Pp-html is a utility which allows you to handly print simple html code or a complex html page with emacs lisp sexp form. You can using some logic tags like Django's template tag in sexp form, such as =:include= =:if= =:for= =:extend= and so on. These logic tags make it possible to print complex html pages as you like.
+#+TITLE: [New Package] Emacs中的HTML模版语言
+#+DATE: 2020-05-10
+#+CATEGORY: Emacs
+#+STARTUP: showall
+#+OPTIONS: toc:t H:3 num:3
 
-Note, pp-html depend on web-mode, you need to make sure web-mode has been installed first.
+[[https://github.com/Kinneyzhang/pp-html.git][pp-html]] 是使用elisp开发的html模版语言。它借鉴了部分 [[https://shopify.github.io/liquid/][Liquid template language]] 的设计思路，包括对象，标签和过滤器三部分。通过书写elisp的S表达式，读者可以快速便捷地构建简单html片段或复杂的html页面。其中 =:include= 和 =:extend= (包含和继承) 标签使得模块化构建html成为可能，提高了代码重用率。
 
-** Installation
-   Clone this repo and add the following two lines in your emacs configuration.
+* 安装
+  克隆此代码仓库:
+  #+BEGIN_SRC shell
+  $ git clone https://github.com/Kinneyzhang/pp-html.git <path-to-pp-html>
+  #+END_SRC
 
-#+BEGIN_SRC emacs-lisp
-(add-to-list 'load-path "<path-to-pp-html>")
-(require 'pp-html)
-#+END_SRC
+  然后在emacs配置中添加如下两行:
+  #+BEGIN_SRC emacs-lisp
+  (add-to-list 'load-path "<path-to-pp-html>")
+  (require 'pp-html)
+  #+END_SRC
 
-** Usage
-   Before use pp-html, you need to know the syntax of elisp list form. Below are some examples to illustrate.
+* 使用
 
-*** basic form
-    one tag
-
-    #+BEGIN_SRC emacs-lisp :exports both :wrap src html
-    (pp-html '(div))
-    #+END_SRC
-
-    #+RESULTS:
-    #+begin_src html
-    <div></div>
-    #+end_src
-
-    one tag with attributes
-    #+BEGIN_SRC emacs-lisp :exports both :wrap src html
-    (pp-html '(link :async nil :rel "stylesheet" :href "url"))
-    #+END_SRC
-
-    #+RESULTS:
-    #+begin_src html
-    <link async rel="stylesheet" href="url"/>
-    #+end_src
-
-    one tag with attribute and context
-    #+BEGIN_SRC emacs-lisp :exports both :wrap src html
-    (pp-html '(div :class "content" "div-content"))
-    #+END_SRC
-
-    #+RESULTS:
-    #+begin_src html
-    <div class="content">div-content</div>
-    #+end_src
-
-    one tag has a child element
-    #+BEGIN_SRC emacs-lisp :exports both :wrap src html
-    (pp-html '(div :class "content" (h1 :id "post-title" "title")))
-    #+END_SRC
-
-    #+RESULTS:
-    #+begin_src html
-    <div class="content">
-      <h1 id="post-title">title</h1>
-    </div>
-    #+end_src
-    
-*** a complex form
-    #+BEGIN_SRC emacs-lisp :exports both :wrap src html
-    (pp-html
-     '(div :class "div-class"
-	   (h1 :id "header" title)
-	   (span :class "description" "description text")
-	   (p "paragraph content" (i "some italic text"))
-	   (a :href "href-url" (img :src "src" :alt "alt"))))
-    #+END_SRC
-
-    #+RESULTS:
-    #+begin_src html
-    <div class="div-class">
-      <h1 id="header" itle></h1>
-      <span class="description">description text</span>
-      <p>
-	paragraph content
-	<i>some italic text</i>
-      </p>
-      <a href="href-url">
-	<img src="src" alt="alt"/>
-      </a>
-    </div>
-    #+end_src
-    
-*** with some logic tags
+** 基础
+   pp-html使用elisp的S表达式来构建html代码，使用 =pp-html= 函数对S表达式求值。下面有一些简单的例子，便于理解基本的使用方法。
    
-    *include*
-    
-    When =:include= is the first element of list, include the variable following.
-    
-    #+BEGIN_SRC emacs-lisp :exports both :wrap src html
-    (setq post-content
-	  '((h1 :id "header" title)
-	    (span :class "description" "description text")
-	    (p "paragraph content" (i "some italic text"))
-	    (a :href "href-url" (img :src "src" :alt "alt"))))
+*** 单个html
+   单个S表达式的构成为: =(html标签 多个属性键值对 内容)= 。
 
-    (pp-html
-     `(div :class "content"
-	   (:include post-content)))
+   其中html标签是必须的，其余可缺省。属性键值对的书写语法为Plist形式。特别地是，对CSS选择器设置了语法糖，用 "." 表示 "class"，"@" 表示 "id"，其值为符号后面的内容。对于无值属性(例如 async)有两种写法：1. (:async nil) 2. 直接写:async，要求不能是最后一个属性。
+   
+   #+BEGIN_SRC emacs-lisp
+   (pp-html '(a "content"))
+   (pp-html '(a @id .class))
+   (pp-html '(a :id "id" :class "class"))
+   (pp-html '(a .test :href "url" :target "_blank" "content"))
+   (pp-html '(link :async :rel "stylesheet" :href "url" :async nil))
+   #+END_SRC
+
+   #+begin_src html
+   <a>content</a>
+   <a id="id" class="class"></a>
+   <a id="id" class="class"></a>
+   <a class="test" href="url" target="_blank">content</a>
+   <link async rel="stylesheet" href "url" async/>
+   #+end_src   
+
+*** 并列html
+   并列的多条html直接用括号包含。
+   
+   #+BEGIN_SRC emacs-lisp
+   (pp-html
+    '((div .div1 "div-content")
+      (p "paragraph")
+      (a :href "url" "a-content")
+      (img :src "path")
+      (ul .org-ul
+	  (li "1")
+	  (li "2")
+	  (li "3"))))
+   #+END_SRC
+
+   #+begin_src html
+   <div class="div1">div-content</div>
+   <p>paragraph</p>
+   <a href="url">a-content</a>
+   <img src="path"/>
+   <ul class="org-ul">
+     <li>1</li>
+     <li>2</li>
+     <li>3</li>
+   </ul>
+   #+end_src
+   
+*** 嵌套html
+   在同一html标签的S表达式内代表该标签的子标签，否则为兄弟标签。
+   
+   #+BEGIN_SRC emacs-lisp
+   (pp-html
+    '(div .container
+	  (div .row
+	       (div .col-8
+		    (p "paragraph 1"))
+	       (div .col-4
+		    (p "paragraph 2")))))
+   #+END_SRC
+
+   #+begin_src html
+   <div class="container">
+     <div class="row">
+       <div class="col-8">
+	 <p>paragraph 1</p>
+       </div>
+       <div class="col-4">
+	 <p>paragraph 2</p>
+       </div>
+     </div>
+   </div>
+   #+end_src
+
+** 对象
+   对象告诉pp-html在页面何处显示对象的值。它包括两部分：变量求值和函数求值。可以使用 =pp-html-eval= 函数获取对象的值。
+
+*** 变量求值
+   变量求值的基本语法是在变量前加上"$"符号。
+   
+   #+BEGIN_SRC emacs-lisp
+   (let ((var1 "happy hacking emacs"))
+     (pp-html-eval '$var1))
+   #+END_SRC
+
+   #+begin_src html
+   happy hacking emacs
+   #+end_src
+
+   变量可应用于S表达式的任何部分。
+
+   #+BEGIN_SRC emacs-lisp
+   (let ((url "https://geekinney.com/")
+	 (name "戈楷旎"))
+     (pp-html '(a :href $url $name)))
+   #+END_SRC
+
+   #+begin_src html
+   <a href="https://geekinney.com/">戈楷旎</a>
+   #+end_src
+
+*** 对象属性求值
+   *特别地，对于Plist对象使用"."来获取属性值。*
+   
+   #+BEGIN_SRC emacs-lisp :wrap src html
+   (let ((site '(:name "戈楷旎" :domain "geekinney.com" :author "Geekinney")))
+     (pp-html '(div .site-info
+		    (p $site.name)
+		    (p $site.domain)
+		    (p $site.author))))
+   #+END_SRC
+
+   #+begin_src html
+   <div class="site-info">
+     <p>戈楷旎</p>
+     <p>geekinney.com</p>
+     <p>Geekinney</p>
+   </div>
+   #+end_src
+
+*** 函数求值
+   函数求值的S表达式语法为 ($ <function> <args...>), 函数的参数也可写成变量形式。
+
+   #+BEGIN_SRC emacs-lisp
+   (let ((var1 "happy")
+	 (var2 " hacking"))
+     (pp-html-eval '($ concat $var1 $var2 " emacs")))
+   #+END_SRC
+
+   #+begin_src html
+   happy hacking emacs
+   #+end_src
+
+   函数可嵌套调用。
+
+   #+BEGIN_SRC emacs-lisp
+   (let ((var1 "now")
+	 (var2 " is ")
+	 (now '(current-time)))
+     (pp-html-eval '($ concat (upcase $var1) $var2 (format-time-string "%Y-%m-%d" $now))))
+   #+END_SRC
+
+   #+begin_src html
+   NOW is 2020-05-10
+   #+end_src
+
+   同理，函数也可用于S表达式的任何部分，这样pp-html就可以任意使用elisp丰富强大的函数库了。
+
+** 标签
+   pp-html支持基本的逻辑标签，逻辑标签简化了函数的写法。
+   
+*** assign
+    定义变量，相当于elisp的let或setq。
+
+    #+BEGIN_SRC emacs-lisp :wrap src html
+    (pp-html-parse
+     '((:assign str1 "happy"
+		str2 "hacking"
+		str3 "emacs")
+       (p ($ concat $str1 " " $str2 " " $str3))))
     #+END_SRC
 
-    #+RESULTS:
     #+begin_src html
-    <div class="content">
-      <h1 id="header" itle=""></h1>
-      <span class="description">description text</span>
-      <p>
-	paragraph content
-	<i>some italic text</i>
-      </p>
-      <a href="href-url">
-	<img src="src" alt="alt"/>
-      </a>
-    </div>
+    <p>happy hacking emacs</p>
     #+end_src
 
-    *if*
-    
-    When =:if= is the first element of list, judge if the 2nd of list is non-nil. If non-nil, return the 3rd element, or return the 4th one. The 4th element is not always necessary.
-
-    #+BEGIN_SRC emacs-lisp :exports both :wrap src html
-    (setq test nil)
-
+*** if
+    if条件判断
+    #+BEGIN_SRC emacs-lisp :wrap src html
     (pp-html
-     `(:if ,test
-	  (p "if test is non-nil, show this sentence")
-	  (p "if test is nil, show this sentence")))
+     '((:assign bool nil)
+       (:if $bool (p "true")
+	    (p "false"))))
     #+END_SRC
 
-    #+RESULTS:
     #+begin_src html
-    <p>if test is nil, show this sentence</p>
+    <p>false</p>
     #+end_src
 
-    *for*
-    
-    When =:for= is the first element of list, loop for the 3rd of list, replace the 2nd of list in next list form.
-    #+BEGIN_SRC emacs-lisp :exports both :wrap src html
+*** unless
+    unless条件判断
+    #+BEGIN_SRC emacs-lisp :wrap src html
     (pp-html
-     '(ul
-       (:for editor ("emacs" "vim" "vscode" "atom")
-	     (li :class "editor" editor))))
+     '((:assign bool nil)
+       (:unless $bool (p "true")
+	    (p "false"))))
     #+END_SRC
 
-    #+RESULTS:
+    #+begin_src html
+    <p>true</p>
+    #+end_src
+
+*** cond
+    分支条件判断
+    #+BEGIN_SRC emacs-lisp :wrap src html
+    (pp-html
+     '((:assign case "case3")
+       (:cond
+	($ string= $case "case1") (p "case1 branch")
+	($ string= $case "case2") (p "case2 branch")
+	($ string= $case "case3") (p "case3 branch")
+	t (p "default branch"))))
+    #+END_SRC
+
+    #+begin_src html
+    <p>case3 branch</p>
+    #+end_src
+
+*** for
+    for循环
+    #+BEGIN_SRC emacs-lisp :wrap src html
+    (pp-html
+     '((:assign editors ("vim" "emacs" "vscode"))
+       (ul
+	(:for editor in $editors
+	      (li :id $editor $editor)))))
+    #+END_SRC
+
     #+begin_src html
     <ul>
-      <li class="editor">emacs</li>
-      <li class="editor">vim</li>
-      <li class="editor">vscode</li>
-      <li class="editor">atom</li>
+      <li id="vim">vim</li>
+      <li id="emacs">emacs</li>
+      <li id="vscode">vscode</li>
     </ul>
     #+end_src
 
-    *extend and block*
-    
-    When =:extend= is the first element of list, extend the 2nd list form and replace the matched =:block= form.
+*** include
+    代码块包含
+    #+BEGIN_SRC emacs-lisp :wrap src html
+    (setq block1
+	  '(p "block1 content"
+	      (a :href "url" "content")))
 
-    #+BEGIN_SRC emacs-lisp :exports both :wrap src html
-    (setq base-html
-	  '(body
-	    (h1 :id "logo" "戈楷旎")
-	    (p :id "description" "happy hacking emacs")
-	    (div :id "content"
-		 (:block main (p "this is default content")))
-	    (div :id "postamble"
-		 (:block end (p "this is default postamble")))))
+    (setq block2
+	  '(div .block2
+		(p "block2 content")
+		(:include $block1)))
 
-    (pp-html
-     `(:extend ,base-html
-	       ;; (:block main (p "this is the extend content"))
-	       (:block end (p "this is the extend postamble"))))
+    (pp-html block2)
     #+END_SRC
 
-    #+RESULTS:
     #+begin_src html
-    <body>
-      <h1 id="logo">戈楷旎</h1>
-      <p id="description">happy hacking emacs</p>
-      <div id="content">
-	<p>this is default content</p>
-      </div>
-      <div id="postamble">
-	<p>this is the extend postamble</p>
-      </div>
-    </body>
+    <div class="block2">
+      <p>block2 content</p>
+      <p>
+	block1 content
+	<a href="url">content</a>
+      </p>
+    </div>
     #+end_src
 
-*** preview printed html
-    Use =pp-html-test= function to  preview the well formatted html in a view buffer. 
+*** extend 
+    代码块继承
+    #+BEGIN_SRC emacs-lisp :wrap src html
+    (setq base-block '(p .base
+			 (:block block-name (span "base content")))
+	  extend-block1 '(:extend $base-block
+				  (:block block-name))
+	  extend-block2 '(:extend $base-block
+				  (:block block-name
+					  (span "extended content"))))
+    (pp-html
+     '((div "extend the default"
+	    (:include $extend-block1))
+       (div "extend with new"
+	    (:include $extend-block2))))
+    #+END_SRC
 
-    [[./test.gif]]
+    #+begin_src html
+    <div>
+      extend the default
+      <p class="base">
+	<span>base content</span>
+      </p>
+    </div>
+    <div>
+      extend with new
+      <p class="base">
+	<span>extended content</span>
+      </p>
+    </div>
+    #+end_src
 
-*** Generate a html page
-    see [[./example.org][example page]] .
+** 过滤器
+   过滤器的语法形式为 (/ <value> <:filter args> ...)。过滤器作用于<value>，可以有参数，也可以没有。
+
+*** 自定义过滤器
+    pp-html支持自定义过滤器，使用 =pp-html-define-filter= 函数，它有两个参数：过滤器名称和过滤函数。例：
+
+    #+BEGIN_SRC emacs-lisp :wrap src html
+    (pp-html-define-filter :add 'pp-html-filter-add)
+    (defun pp-html-filter-add (value arg)
+      "Add a value to a number"
+      (let ((arg (if (stringp arg)
+		     (string-to-number arg)
+		   arg)))
+	(+ value arg)))
+    #+END_SRC
+    
+*** 内置过滤器
+    *abs*: 取绝对值
+    #+BEGIN_SRC emacs-lisp :wrap src html
+    (pp-html-eval '(/ -5 :abs)) ;; => 5
+    #+END_SRC
+
+    *add*: 加上一个数
+    #+BEGIN_SRC emacs-lisp :wrap src html
+    (pp-html-eval '(/ 4 :add 5)) ;; => 9
+    #+END_SRC
+
+    *append*: 结合两个列表
+    #+BEGIN_SRC emacs-lisp
+    (let ((list1 '(1 2 3))
+	  (list2 '(5 6 7)))
+      (pp-html-eval '(/ $list1 :append $list2))) ;; => (1 2 3 5 6 7)
+    #+END_SRC
+
+    *capitalize*: 第一个单词首字母大写
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ "happy hacking emacs!" :capitalize)) ;; => Happy hacking emacs!
+    #+END_SRC
+
+    *compact*: 删除列表中所有的nil
+    #+BEGIN_SRC emacs-lisp
+    (let ((lst '(nil 1 2 nil 3 4 nil)))
+      (pp-html-eval '(/ $lst :compact))) ;; => (1 2 3 4)
+    #+END_SRC
+
+    *concat*: 字符串连接
+    #+BEGIN_SRC emacs-lisp
+    (let ((str1 "happy hacking ")
+	  (str2 "emacs"))
+      (pp-html-eval '(/ $str1 :concat $str2))) ;; => happy hacking emacs
+    #+END_SRC
+
+    *default*: 不是nil或空字符串，设为默认值
+    #+BEGIN_SRC emacs-lisp
+    (let ((str1 "")
+	  (str2 "new value")
+	  (lst1 '(1 2 3))
+	  (lst2 nil))
+      (pp-html-eval '(/ $str1 :default "default value")) ;; => default value
+      (pp-html-eval '(/ $str2 :default "default value")) ;; => new value
+      (pp-html-eval '(/ $lst1 :default (4 5 6))) ;; => (1 2 3)
+      (pp-html-eval '(/ $lst2 :default (4 5 6))) ;; => (4 5 6)
+      )
+    #+END_SRC
+
+    *escape*: html特殊字符转义
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ "Have you read 'James & the Giant Peach'?" :escape)) ;; => Have you read &apos;James &amp; the Giant Peach&apos;?
+    #+END_SRC
+
+    *join*: 使用分隔符连接列表中字符串
+    #+BEGIN_SRC emacs-lisp
+    (let ((lst '("happy" "hacking" "emacs")))
+      (pp-html-eval '(/ $lst :join "-"))) ;; => happy-hacking-emacs
+    #+END_SRC
+
+    *More useful filters is on the way!*
+
+* 说明
+  我的 [[https://geekinney.com/][个人博客]] 就是基于 =pp-html= 构建的，我将构建博客的代码组织成了emacs包: =geekblog= ，目前处理代码优化整理阶段，敬请关注 [[https://github.com/Kinneyzhang][我的Github]] 或博客。
+
+  pp-html为本人写的第一个emacs包，可能有不成熟的地方，希望读者诸君、emacs大牛批评指正。关于package未来功能的拓展和集成，也可以给我提建议(issue或博客留言)。
+
+* 计划
+  * [ ] 内置更多有用的过滤器。
+  * [ ] pp-html-reverse: 反向解析html字符串为pp-html的S表达式形式。
