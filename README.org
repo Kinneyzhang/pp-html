@@ -523,5 +523,6 @@
 
   如果你觉得我的工作对你有所帮助，欢迎 *Star* 和 *Fork* 此代码仓库！顺便请我喝杯啤酒吧，哈哈😄～
 
-#+ATTR_ORG: :width 300px
-[[./image/WeChatPay.JPG]]
+#+begin_export html
+<img width="300px" src="./image/WeChatPay.JPG" :alt "wechatpay">
+#+end_export
