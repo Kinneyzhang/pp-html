@@ -1,4 +1,3 @@
-#+TITLE: [New Package] Emacs中的HTML模版语言
 #+DATE: 2020-05-10
 #+CATEGORY: Emacs
 #+STARTUP: showall
