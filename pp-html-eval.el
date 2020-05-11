@@ -67,12 +67,15 @@
 
 (defun pp-html--func-param-eval (params)
   "Evaluate function params in pp-html."
-  (-tree-map
-   (lambda (p)
-     (if (pp-html--var-p p)
-	 (setq p (pp-html-eval p))
-       (setq p p)))
-   params))
+  (mapcar
+   (lambda (x)
+     (pp-html-eval x))
+   (-tree-map
+    (lambda (p)
+      (if (pp-html--var-p p)
+	  (setq p (pp-html-eval p))
+	(setq p p)))
+    params)))
 
 (defun pp-html--func-eval (el)
   "Evaluate function in pp-html."
