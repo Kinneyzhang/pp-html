@@ -33,6 +33,8 @@
 - [[#计划][计划]]
 - [[#鸣谢和支持][鸣谢和支持]]
 
+[[https://github.com/Kinneyzhang/pp-html.git][pp-html]] 是使用elisp开发的html模版语言。它借鉴了部分 [[https://shopify.github.io/liquid/][Liquid template language]] 的设计思路，包括对象，标签和过滤器三部分。通过书写elisp的S表达式，读者可以快速便捷地构建简单html片段或复杂的html页面。其中 =:include= 和 =:extend= (包含和继承) 标签使得模块化构建html成为可能，提高了代码重用率。
+
 * 安装
   克隆此代码仓库:
   #+BEGIN_SRC shell
