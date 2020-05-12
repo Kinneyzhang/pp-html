@@ -6,6 +6,7 @@
 [[./README.org][English Doc]] | [[./README_ZH.org][中文文档]]
 
 * 目录                                                                :TOC_3:
+- [[#介绍][介绍]]
 - [[#安装][安装]]
 - [[#使用][使用]]
   - [[#基础][基础]]
@@ -31,6 +32,9 @@
   - [[#构建博客][构建博客]]
 - [[#计划][计划]]
 - [[#鸣谢][鸣谢]]
+
+* 介绍
+  pp-html是使用elisp开发的html模版语言。它借鉴了 [[https://shopify.github.io/liquid/][Liquid template language]] 的设计思路，包括对象，标签和过滤器三部分。通过书写elisp的S表达式，读者可以快速便捷地构建简单html片段或复杂的html页面。其中 =:include= 和 =:extend= (包含和继承) 标签使得模块化构建html成为可能，提高了代码重用率。
 
 * 安装
   克隆此代码仓库:

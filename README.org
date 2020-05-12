@@ -5,7 +5,8 @@
 
 [[./README.org][English Doc]] | [[./README_ZH.org][中文文档]]
 
-* Table of Contents :TOC_3:
+* Table of Contents      :TOC_3:
+- [[#introduction][Introduction]]
 - [[#installation][Installation]]
 - [[#usage][Usage]]
   - [[#basic][Basic]]
@@ -31,6 +32,9 @@
   - [[#blog-package][Blog package]]
 - [[#plan][Plan]]
 - [[#acknowledgment][Acknowledgment]]
+
+* Introduction
+  pp-html is a HTML template library based on emacs-lisp. The idea comes from [[https://shopify.github.io/liquid/][Liquid template language]] which includes three main parts: object, tag and filter. It is convenient to generate simple HTML code or complex HTML page by writing elisp S expression in the form of pp-html syntax. It is worth mentioning that =:include= and =:extend= tag make it possible to build HTML pages by module and reuse HTML blocks.
 
 * Installation
   Clone pp-html's github repo to local directory.
