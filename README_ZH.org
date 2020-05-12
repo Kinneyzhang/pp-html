@@ -3,7 +3,7 @@
 #+STARTUP: showall
 #+OPTIONS: toc:t H:3 num:3
 
-[[./README.org][English Doc]] [[./README_ZH.org][中文文档]]
+[[./README.org][English Doc]] | [[./README_ZH.org][中文文档]]
 
 * 目录                                                                :TOC_3:
 - [[#安装][安装]]
@@ -360,6 +360,8 @@
     </div>
     #+end_src
 
+    ... *更多内置标签开发中！*
+
 ** 过滤器
    过滤器的语法形式为 (/ <value> <:filter args> ...)。过滤器作用于<value>，可以有参数，也可以没有。
 
@@ -436,7 +438,7 @@
       (pp-html-eval '(/ $lst :join "-"))) ;; => happy-hacking-emacs
     #+END_SRC
 
-    ...... *More useful filters is on the way!*
+    ... *更多内置过滤器开发中!*
 
 ** 综合
 

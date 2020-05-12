@@ -3,7 +3,7 @@
 #+STARTUP: showall
 #+OPTIONS: toc:t H:3 num:3
 
-[[./README.org][English Doc]] [[./README_ZH.org][中文文档]]
+[[./README.org][English Doc]] | [[./README_ZH.org][中文文档]]
 
 * Table of Contents :TOC_3:
 - [[#installation][Installation]]
@@ -302,7 +302,7 @@
     </ul>
     #+end_src
 
-    ... *cycle* and *table* is one the way!
+    ... *More useful tags is one the way!*
 
 *** Block
     
