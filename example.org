@@ -1,0 +1,125 @@
+#+TITLE: An integration example
+
+#+BEGIN_SRC emacs-lisp :wrap src html
+(setq assign-vars
+      '(:assign name "geekinney blog"
+                description "Emacs is a lifestyle :-) And happy hacking emacs!"
+                menus ((:path "/" :name "Index")
+                       (:path "/archive" :name "Archive")
+                       (:path "/category" :name "Category")
+                       (:path "/about" :name "About"))
+                comment-p t
+                comment-type "disqus"
+                valine-block (p "this is valine block")
+                disqus-block (p "this is disqus block")))
+
+(setq header-block
+      '(header @topheader
+               (a @logo :href "/" $name)
+               (p .description $description)))
+
+(setq menu-block
+      '(nav @topmenu
+            (:for menu in $menus
+                  (a :href $menu.path $menu.name))))
+
+(setq article-block
+      '(article
+        (p ($ concat "Function: the site name is " ($ upcase $name)))
+        (p (/ "Filter: the site name is " :concat (/ $name :capitalize)))
+        (p (/ ("happy" "hacking" "emacs") :join " " :capitalize :concat "!"))))
+
+(setq comment-block
+      '(div @comment
+            (:if comment-p
+                 (:cond
+                  ($ string= $comment-type "valine") (:include $valine-block)
+                  ($ string= $comment-type "disqus") (:include $disqus-block)
+                  t nil)
+                 (p "The comment is closed!"))))
+
+(setq side-block
+      '(aside @sidebar
+              (:block side-block
+                      (p "this is base sidebar"))))
+
+(setq footer-block
+      '(:block footer-block
+               (footer
+                (p "this is base footer."))))
+
+(setq base-block
+      '((:include $assign-vars)
+        (body
+         (div .container
+              (div .row
+                   (div .col-12
+                        (:include $header-block)))
+              (div .row
+                   (div .col-12
+                        (:include $menu-block)))
+              (div .row
+                   (div .col-12 .col-sm-12 .col-md-8 .col-lg-8
+                        (:include $article-block)
+                        (:include $comment-block))
+                   (div .col-md-4 .col-lg-4
+                        (:include $side-block)))
+              (div .row
+                   (div .col-12
+                        (:include $footer-block)))))))
+
+(pp-html
+ '(:extend $base-block
+           (:block side-block
+                   (p "this is extended sidebar"))
+           (:block footer-block)))
+#+END_SRC
+
+#+begin_src html
+<body>
+  <div class="container">
+    <div class="row">
+      <div class="col-12">
+        <header id="topheader">
+          <a id="logo" href="/">geekinney blog</a>
+          <p class="description">Emacs is a lifestyle :-) And happy hacking emacs!</p>
+        </header>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12">
+        <nav id="topmenu">
+          <a href="/">Index</a>
+          <a href="/archive">Archive</a>
+          <a href="/category">Category</a>
+          <a href="/about">About</a>
+        </nav>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12 col-sm-12 col-md-8 col-lg-8">
+        <article>
+          <p>Function: the site name is GEEKINNEY BLOG</p>
+          <p>Filter: the site name is Geekinney blog</p>
+          <p>Happy hacking emacs!</p>
+        </article>
+        <div id="comment">
+          <p>this is disqus block</p>
+        </div>
+      </div>
+      <div class="col-md-4 col-lg-4">
+        <aside id="sidebar">
+          <p>this is extended sidebar</p>
+        </aside>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12">
+        <footer>
+          <p>this is base footer.</p>
+        </footer>
+      </div>
+    </div>
+  </div>
+</body>
+#+end_src
