@@ -42,6 +42,8 @@
   $ git clone https://github.com/Kinneyzhang/pp-html.git <path-to-pp-html>
   #+END_SRC
 
+  安装相关依赖: [[https://github.com/magnars/dash.el][dash]], [[https://github.com/magnars/s.el][s]] 和 [[https://github.com/fxbois/web-mode][web-mode]]。
+
   然后在emacs配置中添加如下两行:
   #+BEGIN_SRC emacs-lisp
   (add-to-list 'load-path "<path-to-pp-html>")

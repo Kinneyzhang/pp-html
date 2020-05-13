@@ -37,14 +37,14 @@
   pp-html is a HTML template library based on emacs-lisp. The idea comes from [[https://shopify.github.io/liquid/][Liquid template language]] which includes three main parts: object, tag and filter. It is convenient to generate simple HTML code or complex HTML page by writing elisp S expression in the form of pp-html syntax. It is worth mentioning that =:include= and =:extend= tag make it possible to build HTML pages by module and reuse HTML blocks.
 
 * Installation
-  Clone pp-html's github repo to local directory.
+  Clone pp-html's github repo to local directory:
   #+BEGIN_SRC shell
   $ git clone https://github.com/Kinneyzhang/pp-html.git <path-to-pp-html>
   #+END_SRC
 
-  #+RESULTS:
+  Install some dependencies: [[https://github.com/magnars/dash.el][dash]], [[https://github.com/magnars/s.el][s]] and [[https://github.com/fxbois/web-mode][web-mode]].
 
-  Then, add the following two lines in your emacs configuration.
+  Then, add the following two lines in your emacs configuration:
   #+BEGIN_SRC emacs-lisp
   (add-to-list 'load-path "<path-to-pp-html>")
   (require 'pp-html)
