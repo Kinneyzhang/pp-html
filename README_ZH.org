@@ -29,6 +29,7 @@
 - [[#说明][说明]]
   - [[#预览调试][预览调试]]
   - [[#xml支持][XML支持]]
+  - [[#结合orgmode][结合OrgMode]]
   - [[#构建博客][构建博客]]
 - [[#计划][计划]]
 - [[#鸣谢][鸣谢]]
@@ -458,6 +459,37 @@
 ** XML支持
    pp-html还额外支持生成xml。与html不同，xml没有单元素(img,link...)，所以更简单。使用方法为设置 =pp
 -html= 函数的第二个参数为t。
+
+** 结合OrgMode
+   在Org文件中，使用带参数的emacs-lisp代码块可以在Org或HTML中生成elisp代码对应的HTML。例如：
+
+   1.当导出Org文件时，生成一个有红色背景div的html页面。
+
+   #+begin_example
+   ,#+BEGIN_SRC emacs-lisp :results value html :exports results
+   (pp-html '(div :style "background-color:red;" "content"))
+   ,#+END_SRC
+
+   ,#+RESULTS:
+   ,#+begin_export html
+   <div style="background-color:red;">content</div>
+   ,#+end_export
+   #+end_example
+
+   2.当导出Org文件时，生成包含 ~<div style="background-color:red;">content</div>~ 代码的html页面。
+
+   #+begin_example
+   ,#+BEGIN_SRC emacs-lisp :wrap src html :exports results
+   (pp-html '(div :style "background-color:red;" "content"))
+   ,#+END_SRC
+
+   ,#+RESULTS:
+   ,#+begin_src html
+   <div style="background-color:red;">content</div>
+   ,#+end_src
+   #+end_example
+
+   关于OrgMode导出代码块的参数设置参考 [[https://orgmode.org/org.html#Working-with-Source-Code][Working-with-Source-Code]] 。
    
 ** 构建博客
   我的 [[https://geekinney.com/][个人博客]] 就是基于 =pp-html= 构建的，我将构建博客的代码组织成了emacs包: =geekblog= ，目前处理代码优化整理阶段，敬请关注 [[https://github.com/Kinneyzhang][我的Github]] 或博客。
