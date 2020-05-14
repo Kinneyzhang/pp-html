@@ -5,9 +5,9 @@
 
 ;; Author: Kinneyzhang <kinneyzhang666@gmail.com>
 ;; Version: 1.0.0
-;; Package-Requires: ((emacs "26.3") (dash "2.16.0) (web-mode "16.0.24"))
-;; URL: https://github.com/Kinneyzhang/pp-html.el
-;; Keywords: html, list
+;; Package-Requires: ((emacs "26.3") (s "1.12.0) (dash "2.16.0) (web-mode "16.0.24"))
+;; URL: https://github.com/Kinneyzhang/pp-html
+;; Keywords: html, sexp
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License
@@ -24,17 +24,34 @@
 
 ;;; Commentary:
 
-;; This package is a utility for pretty print html with emacs sexps.
-;; The function `pp-html' allows you to print a complex
-;; html page by using simple elisp list form. Some stuff link Django's
-;; template tag feature are also added to elisp lisp when print.
+;; pp-html is a HTML template library based on emacs-lisp.
+;; It is convenient to generate simple HTML code or complex HTML page
+;; by writing elisp S expression in the form of pp-html syntax.
+;; It is worth mentioning that =:include= and =:extend= tag
+;; make it possible to build HTML pages by module and reuse HTML blocks.
 
 ;;; Code:
+(require 's)
 (require 'dash)
 (require 'web-mode)
-(require 'pp-html-utils)
-(require 'pp-html-eval)
-(require 'pp-html-parse)
+
+(defvar pp-html-filter-list
+      '((:add pp-html-filter-add)
+	(:abs pp-html-filter-abs)
+	(:append pp-html-filter-append)
+	(:capitalize pp-html-filter-capitalize)
+	(:compact pp-html-filter-compact)
+	(:concat pp-html-filter-concat)
+	(:default pp-html-filter-default)
+	(:downcase pp-html-filter-downcase)
+	(:upcase pp-html-filter-upcase)
+	(:escape pp-html-filter-escape)
+	(:join pp-html-filter-join))
+      "Filter function tag.")
+
+(defvar pp-html-logic-element-list
+  '(:assign :include :if :unless :for :cond :extend)
+  "Supported pp-html logic element list.")
 
 (defvar pp-html-html5-elements
   '("html"
@@ -53,8 +70,6 @@
 (defvar pp-html-other-html-elements
   '("meting-js"))
 
-;; add other html tag function!
-
 (defvar pp-html-empty-element-list
   '("area" "base" "br" "col" "colgroup" "embed" "hr" "img" "input" "link" "meta" "param" "source" "track" "wbr")
   "Html5 empty element list, from https://developer.mozilla.org/zh-CN/docs/Glossary/空元素")
@@ -68,7 +83,324 @@
 (defvar pp-html-xml-header "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
   "Xml header.")
 
-;; some utilities
+;;; --------------------------------------------------
+;; helper functions
+(defun pp-html--plist->alist (plist)
+  "Convert plist to alist."
+  (if (null plist)
+      '()
+    (cons
+     (list (car plist) (cadr plist))
+     (pp-html--plist->alist (cddr plist)))))
+
+(defun pp-html--symbol-initial (sym)
+  "Get the initial charactor of a symbol."
+  (if (symbolp sym)
+      (substring (symbol-name sym) 0 1)))
+
+(defun pp-html--symbol-rest (sym)
+  "Get the rest part of symbol."
+  (if (symbolp sym)
+      (substring (symbol-name sym) 1)))
+
+(defun pp-html-sexp-replace (old new sexp)
+  "Replace all occurences of OLD by NEW in SEXP."
+  (let ((lst)
+	(el))
+    (--tree-map-nodes
+     (when (pp-html--var-p it)
+       (setq lst (split-string (pp-html--symbol-rest it) "[.]"))
+       (setq el (intern (nth 0 lst)))
+       (equal el old))
+     (if (= 1 (length lst))
+	 (progn
+	   (eval `(setq ,el ,new))
+	   (-setq it (pp-html-eval it)))
+       (eval `(setq ,el ',new))
+       (-setq it (pp-html-eval it)))
+     sexp)))
+;;; --------------------------------------------------
+;; filter evaluation, functions.
+(defun pp-html--filter-p (el)
+  "Judge if a element is a filter."
+  (if (listp el)
+      (if (and (eq '/ (car el)))
+	  t nil)
+    nil))
+
+(defun pp-html--filter-alist (plist)
+  "Make filter plist to alist"
+  (if (null plist)
+      '()
+    (if (assoc (car plist) pp-html-filter-list)
+	(if (not (assoc (cadr plist) pp-html-filter-list))
+	    (cons
+	     (list (car plist) (cadr plist))
+	     (pp-html--filter-alist (cddr plist)))
+	  (cons
+	   (list (car plist))
+	   (pp-html--filter-alist (cdr plist)))))))
+
+(defun pp-html--filter-eval (sexp)
+  "Evalute pp-html filter."
+  (let* ((value (pp-html-eval (cadr sexp)))
+	 (plist (cddr sexp))
+	 (alist (pp-html--filter-alist plist)))
+    (dolist (filter alist)
+      (if (null (cadr filter))
+	  (progn
+	    (setq value
+		  (funcall (cadr (assoc (car filter) pp-html-filter-list)) value)))
+	(setq value
+	      (funcall (cadr (assoc (car filter) pp-html-filter-list)) value (pp-html-eval (cadr filter))))))
+    value))
+
+;;;###autoload
+(defun pp-html-define-filter (filter func)
+  "Add pp-html filter."
+  (if (not (assoc filter pp-html-filter-list))
+      (add-to-list 'pp-html-filter-list (list filter func))
+    (error "Filter %s already defined!" filter)))
+
+;; filter functions
+(defun pp-html-filter-abs (value)
+  "Return the absolute value of a number."
+  (let ((value (if (stringp value)
+		   (string-to-number value)
+		 value)))
+    (abs value)))
+
+(defun pp-html-filter-add (value arg)
+  "Add a value to a number"
+  (let ((arg (if (stringp arg)
+		 (string-to-number arg)
+	       arg)))
+    (+ value arg)))
+
+(defun pp-html-filter-append (value arg)
+  "Append a list to another one."
+  (append value arg))
+
+(defun pp-html-filter-capitalize (value)
+  "Convert the first word’s first character to upper case."
+  (s-capitalize value))
+
+(defun pp-html-filter-compact (value)
+  "Delete all nil in a list."
+  (delete nil value))
+
+(defun pp-html-filter-concat (value arg)
+  "Join two string together."
+  (concat value (pp-html-eval arg)))
+
+(defun pp-html-filter-default (value arg)
+  "If value is nil or null string, set default value."
+  (if (or (equal "" value) (null value))
+      arg
+    value))
+
+(defun pp-html-filter-downcase (value)
+  "Convert all chars in string to lower case."
+  (downcase value))
+
+(defun pp-html-filter-upcase (value)
+  "Convert all chars in string to upper case."
+  (upcase value))
+
+(defun pp-html-filter-escape (value)
+  "Escapes a string by replacing characters with escape sequences."
+  (xml-escape-string value))
+
+(defun pp-html-filter-join (value arg)
+  "Combines the items in a list into a single string using the argument as a separator"
+  (let ((res (nth 0 value)))
+    (dolist (item (cdr value))
+      (setq res (concat res arg item)))
+    res))
+;;; --------------------------------------------------
+;; pp-html evaluation, include filter, variable and function.
+(defun pp-html--var-p (el)
+  "Jude if a element is a variable."
+  (if (symbolp el)
+      (if (and
+	   (string= "$" (pp-html--symbol-initial el))
+	   (not (string= "" (pp-html--symbol-rest el))))
+	  t nil)
+    nil))
+
+(defun pp-html--var-eval (el)
+  "Evaluate variable in pp-html."
+  (let* ((i 1)
+	 (var (intern (pp-html--symbol-rest el)))
+	 (var-str (symbol-name var))
+	 (lst (split-string var-str "[.]"))
+	 (res (eval (intern (nth 0 lst)))))
+    (if (= 1 (length lst))
+	(setq res (eval var))
+      (while (nth i lst)
+	(let ((prop (intern (concat ":" (nth i lst)))))
+	  (setq res (eval `(plist-get ',res ,prop)))
+	  (incf i))))
+    res))
+
+(defun pp-html--func-p (el)
+  "Jude if a element is a function."
+  (if (listp el)
+      (if (eq '$ (car el)) t nil)
+    nil))
+
+(defun pp-html--func-param-eval (params)
+  "Evaluate function params in pp-html."
+  (mapcar
+   (lambda (x)
+     (pp-html-eval x))
+   (-tree-map
+    (lambda (p)
+      (if (pp-html--var-p p)
+	  (setq p (pp-html-eval p))
+	(setq p p)))
+    params)))
+
+(defun pp-html--func-eval (el)
+  "Evaluate function in pp-html."
+  (let ((params (pp-html--func-param-eval (cddr el))))
+    (eval `(funcall ',(cadr el) ,@params))))
+
+;;;###autoload
+(defun pp-html-eval (el)
+  "General evaluation in pp-html."
+  (cond
+   ((pp-html--var-p el)
+    (pp-html--var-eval el))
+   ((pp-html--func-p el)
+    (pp-html--func-eval el))
+   ((pp-html--filter-p el)
+    (pp-html--filter-eval el))
+   (t el)))
+;;; --------------------------------------------------
+;; pp-html logic tags functions and parse.
+(defun pp-html--process-logic-assign (sexp)
+  "Process :assign logic"
+  (let ((alist (pp-html--plist->alist (cdr sexp))))
+    (dolist (lst alist)
+      (let ((var (car lst))
+	    (val (pp-html-eval (cadr lst))))
+	(set var val)))))
+
+(defun pp-html--process-logic-include (sexp)
+  "Process :include logic."
+  (pp-html-eval (cadr sexp)))
+
+(defun pp-html--process-logic-if (sexp)
+  "Process :if logic."
+  (if (pp-html-eval (nth 1 sexp))
+      (pp-html-eval (nth 2 sexp))
+    (if (nth 3 sexp)
+	(pp-html-eval (nth 3 sexp)))))
+
+(defun pp-html--process-logic-unless (sexp)
+  "Process :unless logic."
+  (if (not (pp-html-eval (nth 1 sexp)))
+      (pp-html-eval (nth 2 sexp))
+    (if (nth 3 sexp)
+	(pp-html-eval (nth 3 sexp)))))
+
+(defun pp-html--process-logic-cond (sexp)
+  "Process :cond logic."
+  (let ((len (length sexp))
+	(cases (cdr sexp))
+	(i 0)
+	(res))
+    (if (= 0 (% len 2))
+	(error "error pp-html :cond syntax!"))
+    (catch 'break
+      (while (nth i cases)
+	(when (pp-html-eval (nth i cases))
+	  (setq res (pp-html-eval (nth (1+ i) cases)))
+	  (throw 'break res))
+	(incf i 2)))))
+
+(defun pp-html--process-logic-for (sexp)
+  "Process :for logic."
+  (let ((res)
+	(el (pp-html-eval (nth 1 sexp)))
+	(in (nth 2 sexp))
+	(lst (pp-html-eval (nth 3 sexp)))
+	(target (pp-html-eval (nth 4 sexp)))
+	(len (length sexp)))
+    (if (and (= len 5) (eq 'in in))
+	(setq res (mapcar (lambda (x)
+			    (pp-html-sexp-replace el x target))
+			  lst))
+      (error "error pp-html :for syntax!"))))
+
+(defun pp-html--process-logic-extend (sexp)
+  "Process :extend logic."
+  (let* ((base-str (prin1-to-string (pp-html-parse (cadr sexp))))
+	 (blocks (cddr sexp))
+	 (extend-str base-str)
+	 (point))
+    (when blocks
+      (with-temp-buffer
+	(emacs-lisp-mode)
+	(insert base-str)
+	(setq point (goto-char (point-min)))
+	(while point
+	  (dolist (item blocks)
+	    (let* ((block-name (symbol-name (cadr item)))
+		   (extend-block (cadr (cdr item)))
+		   (extend-block-str (prin1-to-string (pp-html-eval extend-block))))
+	      (setq point (re-search-forward ":block" nil t))
+	      (skip-chars-forward "[\" \"\n\t\r]")
+	      (when (string= block-name (thing-at-point 'symbol))
+		(forward-symbol 1)
+		(skip-chars-forward "^(")
+		(let ((base-block-str (thing-at-point 'sexp)))
+		  (skip-chars-backward "^(")
+		  (backward-char)
+		  (kill-sexp)
+		  (if extend-block
+		      (insert extend-block-str)
+		    (insert base-block-str)))))
+	    (setq extend-str (buffer-string))))))
+    (read extend-str)))
+
+(defun pp-html--process-logic (sexp)
+  (--tree-map-nodes
+   (member (car-safe it) pp-html-logic-element-list)
+   (-setq it
+     (funcall (read (concat "pp-html--process-logic-" (pp-html--symbol-rest (car-safe it)))) it))
+   sexp))
+
+;;;###autoload
+(defun pp-html-parse (sexp)
+  "Process all logic element."
+  (let* ((sexp (pp-html-eval sexp))
+	 (new-sexp (pp-html--process-logic sexp)))
+    (if (not (equal sexp new-sexp))
+	(pp-html-parse new-sexp)
+      sexp)))
+
+;; ;;;###autoload
+;; (defun pp-html-parse-test (sexp)
+;;   (ignore-errors (kill-buffer "*pp-html-parse-test*"))
+;;   (with-current-buffer (get-buffer-create "*pp-html-parse-test*")
+;;     (emacs-lisp-mode)
+;;     (insert (format "%S" (pp-html-parse sexp)))
+;;     (goto-char (point-min))
+;;     (forward-char)
+;;     (setq pos (point))
+;;     (while pos
+;;       ;; (setq old-pos pos)
+;;       (setq pos (re-search-forward "(" nil t))
+;;       (backward-char)
+;;       (newline)
+;;       (forward-char))
+;;     (indent-region (point-min) (point-max)))
+;;   (view-buffer "*pp-html-parse-test*" 'kill-buffer))
+
+;;; --------------------------------------------------
+;; main functions, generate html.
 (defun pp-html--get-attr-plist (sexp)
   "Get attributes plist of a sexp."
   (let ((i 0)
@@ -182,7 +514,6 @@
 	  (forward-char 1))))
     ))
 
-;; Process tag sexp.
 (defun pp-html--process-elem (sexp)
   "Process html elem."
   (let ((elem (car sexp))
