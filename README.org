@@ -358,16 +358,17 @@
     #+end_src
 
     * else
+
       Specifies a fallback case for a for loop which will run if the loop has zero length.
 
-    #+BEGIN_SRC emacs-lisp :wrap src html
-    (pp-html
-     '((:assign editors ())
-       (ul
-	(:for editor in $editors
-	      (li :id $editor $editor)
-	      (:else (li "no editor"))))))
-    #+END_SRC
+#+BEGIN_SRC emacs-lisp :wrap src html
+(pp-html
+ '((:assign editors ())
+   (ul
+    (:for editor in $editors
+	  (li :id $editor $editor)
+	  (:else (li "no editor"))))))
+#+END_SRC
 
     #+begin_src html
     <ul>
@@ -376,18 +377,19 @@
     #+end_src
 
     * break
+
       Causes the loop to stop iterating when it encounters the break tag.
 
-    #+BEGIN_SRC emacs-lisp :wrap src html
-    (pp-html
-     '((:assign editors ("vim" "emacs" "vscode" "atom" "sublime text"))
-       (ul
-	(:for editor in $editors
-	      (:ifequal $editor "atom"
-			(:break)
-			(li :id $editor $editor))
-	      (:else (li "no editor"))))))
-    #+END_SRC
+#+BEGIN_SRC emacs-lisp :wrap src html
+(pp-html
+ '((:assign editors ("vim" "emacs" "vscode" "atom" "sublime text"))
+   (ul
+    (:for editor in $editors
+	  (:ifequal $editor "atom"
+		    (:break)
+		    (li :id $editor $editor))
+	  (:else (li "no editor"))))))
+#+END_SRC
 
     #+begin_src html
     <ul>
@@ -398,18 +400,19 @@
     #+end_src
 
     * continue
+
       Causes the loop to skip the current iteration when it encounters the continue tag.
 
-    #+BEGIN_SRC emacs-lisp :wrap src html
-    (pp-html
-     '((:assign editors ("vim" "emacs" "vscode" "atom" "sublime text"))
-       (ul
-	(:for editor in $editors
-	      (:ifequal $editor "atom"
-			(:continue)
-			(li :id $editor $editor))
-	      (:else (li "no editor"))))))
-    #+END_SRC
+#+BEGIN_SRC emacs-lisp :wrap src html
+(pp-html
+ '((:assign editors ("vim" "emacs" "vscode" "atom" "sublime text"))
+   (ul
+    (:for editor in $editors
+	  (:ifequal $editor "atom"
+		    (:continue)
+		    (li :id $editor $editor))
+	  (:else (li "no editor"))))))
+#+END_SRC
 
     #+begin_src html
     <ul>
@@ -423,15 +426,16 @@
     *for with parameters*
     
     * limit 
+
       Limits the loop to the specified number of iterations.
-    #+BEGIN_SRC emacs-lisp :wrap src html
-    (pp-html
-     '((:assign editors ("vim" "emacs" "vscode" "atom" "sublime text"))
-       (ul
-	(:for editor in $editors :limit 3
-	      (li :id $editor $editor)
-	      (:else (li "no editor"))))))
-    #+END_SRC
+#+BEGIN_SRC emacs-lisp :wrap src html
+(pp-html
+ '((:assign editors ("vim" "emacs" "vscode" "atom" "sublime text"))
+   (ul
+    (:for editor in $editors :limit 3
+	  (li :id $editor $editor)
+	  (:else (li "no editor"))))))
+#+END_SRC
 
     #+begin_src html
     <ul>
@@ -442,16 +446,17 @@
     #+end_src
 
     * offset
+
       Begins the loop at the specified index.
       
-    #+BEGIN_SRC emacs-lisp :wrap src html
-    (pp-html
-     '((:assign editors ("vim" "emacs" "vscode" "atom" "sublime text"))
-       (ul
-	(:for editor in $editors :offset 2
-	      (li :id $editor $editor)
-	      (:else (li "no editor"))))))
-    #+END_SRC
+#+BEGIN_SRC emacs-lisp :wrap src html
+(pp-html
+ '((:assign editors ("vim" "emacs" "vscode" "atom" "sublime text"))
+   (ul
+    (:for editor in $editors :offset 2
+	  (li :id $editor $editor)
+	  (:else (li "no editor"))))))
+#+END_SRC
 
     #+begin_src html
     <ul>
@@ -462,24 +467,25 @@
     #+end_src
 
     * range
+
       Defines a range of numbers to loop through. The range can be defined by both literal and variable numbers.
 
-    #+BEGIN_SRC emacs-lisp :wrap src html
-    (pp-html
-     '((ul
-	(:for it in (3..6)
-	      (li :id $it $it)
-	      (:else (li "no number"))))
-       (:assign max 9)
-       (ul
-	(:for it in (6..$max)
-	      (li :id $it $it)
-	      (:else (li "no number"))))
-       (ul
-	(:for it in (2..$max by 2)
-	      (li :id $it $it)
-	      (:else (li "no number"))))))
-	#+END_SRC
+#+BEGIN_SRC emacs-lisp :wrap src html
+(pp-html
+ '((ul
+    (:for it in (3..6)
+	  (li :id $it $it)
+	  (:else (li "no number"))))
+   (:assign max 9)
+   (ul
+    (:for it in (6..$max)
+	  (li :id $it $it)
+	  (:else (li "no number"))))
+   (ul
+    (:for it in (2..$max by 2)
+	  (li :id $it $it)
+	  (:else (li "no number"))))))
+#+END_SRC
 
     #+begin_src html
     <ul>
@@ -502,44 +508,45 @@
     </ul>
     #+end_src
       
-    * reversed 
+    * reversed
+      
       Reverses the order of the loop.
       
-    #+BEGIN_SRC emacs-lisp :wrap src html
-    (pp-html
-     '((:assign editors ("vim" "emacs" "vscode" "atom"))
-       (ul
-	(:for editor in $editors :reversed
-	      (li :id $editor $editor)
-	      (:else (li "no editor"))))))
-    #+END_SRC
+#+BEGIN_SRC emacs-lisp :wrap src html
+(pp-html
+ '((:assign editors ("vim" "emacs" "vscode" "atom"))
+   (ul
+    (:for editor in $editors :reversed
+	  (li :id $editor $editor)
+	  (:else (li "no editor"))))))
+#+END_SRC
 
-    #+begin_src html
-    <ul>
-      <li id="atom">atom</li>
-      <li id="vscode">vscode</li>
-      <li id="emacs">emacs</li>
-      <li id="vim">vim</li>
-    </ul>
-    #+end_src
+#+begin_src html
+<ul>
+  <li id="atom">atom</li>
+  <li id="vscode">vscode</li>
+  <li id="emacs">emacs</li>
+  <li id="vim">vim</li>
+</ul>
+#+end_src
 
-    *NOTE*: all types of parameters can be combined together, for example:
+*NOTE*: all types of parameters can be combined together, for example:
     
-    #+BEGIN_SRC emacs-lisp :wrap src html
-    (pp-html
-     '(ul
-       (:for it in (1..15 by 2) :offset 2 :limit 3 :reversed
-	     (li :id $it $it)
-	     (:else (li "no number")))))
-       #+END_SRC
+#+BEGIN_SRC emacs-lisp :wrap src html
+(pp-html
+ '(ul
+   (:for it in (1..15 by 2) :offset 2 :limit 3 :reversed
+	 (li :id $it $it)
+	 (:else (li "no number")))))
+#+END_SRC
 
-    #+begin_src html
-    <ul>
-      <li id="9">9</li>
-      <li id="7">7</li>
-      <li id="5">5</li>
-    </ul>
-   #+end_src
+#+begin_src html
+<ul>
+  <li id="9">9</li>
+  <li id="7">7</li>
+  <li id="5">5</li>
+</ul>
+#+end_src
 
 *** Block
     
@@ -549,13 +556,13 @@
 
     #+BEGIN_SRC emacs-lisp :wrap src html
     (setq block1
-          '(p "block1 content"
-              (a :href "url" "content")))
+	  '(p "block1 content"
+	      (a :href "url" "content")))
 
     (setq block2
-          '(div .block2
-                (p "block2 content")
-                (:include $block1)))
+	  '(div .block2
+		(p "block2 content")
+		(:include $block1)))
 
     (pp-html block2)
     #+END_SRC
@@ -564,8 +571,8 @@
     <div class="block2">
       <p>block2 content</p>
       <p>
-        block1 content
-        <a href="url">content</a>
+	block1 content
+	<a href="url">content</a>
       </p>
     </div>
     #+end_src
@@ -576,30 +583,30 @@
 
     #+BEGIN_SRC emacs-lisp :wrap src html
     (setq base-block '(p .base
-                         (:block block-name (span "base content")))
-          extend-block1 '(:extend $base-block
-                                  (:block block-name))
-          extend-block2 '(:extend $base-block
-                                  (:block block-name
-                                          (span "extended content"))))
+			 (:block block-name (span "base content")))
+	  extend-block1 '(:extend $base-block
+				  (:block block-name))
+	  extend-block2 '(:extend $base-block
+				  (:block block-name
+					  (span "extended content"))))
     (pp-html
      '((div "extend the default"
-            (:include $extend-block1))
+	    (:include $extend-block1))
        (div "extend with new"
-            (:include $extend-block2))))
+	    (:include $extend-block2))))
     #+END_SRC
 
     #+begin_src html
     <div>
       extend the default
       <p class="base">
-        <span>base content</span>
+	<span>base content</span>
       </p>
     </div>
     <div>
       extend with new
       <p class="base">
-        <span>extended content</span>
+	<span>extended content</span>
       </p>
     </div>
     #+end_src
