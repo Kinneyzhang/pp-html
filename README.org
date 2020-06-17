@@ -658,7 +658,7 @@
 
     *capitalize*: makes the first character of a string capitalized
     #+BEGIN_SRC emacs-lisp
-    (pp-html-eval '(/ "happy hacking emacs!" :capitalize)) ;; => Happy hacking emacs!
+    (pp-html-eval '(/ "happy hacking emacs!" :capitalize)) ;; => "Happy hacking emacs!"
     #+END_SRC
 
     *compact*: removes any nil values from an array
@@ -671,12 +671,12 @@
     #+BEGIN_SRC emacs-lisp
     (let ((str1 "happy hacking ")
 	  (str2 "emacs"))
-      (pp-html-eval '(/ $str1 :concat $str2))) ;; => happy hacking emacs
+      (pp-html-eval '(/ $str1 :concat $str2))) ;; => "happy hacking emacs"
     #+END_SRC
     
     *date*: converts a timestamp into another date format
     #+BEGIN_SRC emacs-lisp
-    (pp-html-eval '(/ "now" :date "%Y-%m-%d %T"))
+    (pp-html-eval '(/ "now" :date "%Y-%m-%d %T")) ;; => "2020-06-17 22:25:11"
     #+END_SRC
 
     *default*: default will show its value if the left side is nil, false, or empty
@@ -685,8 +685,8 @@
 	  (str2 "new value")
 	  (lst1 '(1 2 3))
 	  (lst2 nil))
-      (pp-html-eval '(/ $str1 :default "default value")) ;; => default value
-      (pp-html-eval '(/ $str2 :default "default value")) ;; => new value
+      (pp-html-eval '(/ $str1 :default "default value")) ;; => "default value"
+      (pp-html-eval '(/ $str2 :default "default value")) ;; => "new value"
       (pp-html-eval '(/ $lst1 :default (4 5 6))) ;; => (1 2 3)
       (pp-html-eval '(/ $lst2 :default (4 5 6))) ;; => (4 5 6)
       )
@@ -699,7 +699,7 @@
 
     *downcase*: convert all chars in string to lower case
     #+BEGIN_SRC emacs-lisp
-    (pp-html-eval '(/ "HAPPY Hacking Emacs!" :downcase)) ;; => happy hacking emacs!
+    (pp-html-eval '(/ "HAPPY Hacking Emacs!" :downcase)) ;; => "happy hacking emacs!"
     #+END_SRC
 
     *first*: returns the first item of an array
@@ -714,7 +714,7 @@
 
     *join*: combines the items in a list into a single string using the argument as a separator
     #+BEGIN_SRC emacs-lisp
-    (pp-html-eval '(/ ("happy" "hacking" "emacs") :join " ")) ;; => hacking hacking emacs
+    (pp-html-eval '(/ ("happy" "hacking" "emacs") :join " ")) ;; => "hacking hacking emacs"
     #+END_SRC
 
     *last*: returns the last item of an array
@@ -752,19 +752,19 @@
 
     *prepend*: adds the specified string to the beginning of another string
     #+BEGIN_SRC emacs-lisp
-    (pp-html-eval '(/ "geekinney.com/" :prepend "https://")) ;; => https://geekinney.com/
+    (pp-html-eval '(/ "geekinney.com/" :prepend "https://")) ;; => "https://geekinney.com/"
     #+END_SRC
 
     *replace*: replaces every occurrence of the first argument in a string with the second argument
     #+BEGIN_SRC emacs-lisp
     (let ((repl-str "emacs is a lifestyle and happy hacking emacs."))
-      (pp-html-eval '(/ $repl-str :replace "emacs" "vim"))) ;; => vim is a lifestyle and happy hacking vim.
+      (pp-html-eval '(/ $repl-str :replace "emacs" "vim"))) ;; => "vim is a lifestyle and happy hacking vim."
     #+END_SRC
 
     *replace_first*: replaces only the first occurrence of the first argument in a string with the second argument
     #+BEGIN_SRC emacs-lisp
     (let ((repl-str "emacs is a lifestyle and happy hacking emacs."))
-      (pp-html-eval '(/ $repl-str :replace_first "emacs" "vim"))) ;; => vim is a lifestyle and happy hacking emacs.
+      (pp-html-eval '(/ $repl-str :replace_first "emacs" "vim"))) ;; => "vim is a lifestyle and happy hacking emacs."
     #+END_SRC
 
     *reverse*: reverses the order of the items in an array
@@ -795,7 +795,7 @@ zero-indexed: 0 means the first character of STRING.  Negative values
 are counted from the end of STRING.  If TO is nil, the substring runs
 to the end of STRING.
     #+BEGIN_SRC emacs-lisp
-    (pp-html-eval '(/ "happy hacking emacs!" :slice 6 -1)) ;; hacking emacs
+    (pp-html-eval '(/ "happy hacking emacs!" :slice 6 -1)) ;; "hacking emacs"
     #+END_SRC
 
     *sort*: sorts items in an array in case-sensitive order
