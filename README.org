@@ -265,7 +265,6 @@
 		 (p "equal"))))
     #+END_SRC
 
-    #+RESULTS:
     #+begin_src html
     <p>not equal</p>
     #+end_src
@@ -390,7 +389,6 @@
 	      (:else (li "no editor"))))))
     #+END_SRC
 
-    #+RESULTS:
     #+begin_src html
     <ul>
       <li id="vim">vim</li>
@@ -413,7 +411,6 @@
 	      (:else (li "no editor"))))))
     #+END_SRC
 
-    #+RESULTS:
     #+begin_src html
     <ul>
       <li id="vim">vim</li>
@@ -436,7 +433,6 @@
 	      (:else (li "no editor"))))))
     #+END_SRC
 
-    #+RESULTS:
     #+begin_src html
     <ul>
       <li id="vim">vim</li>
@@ -457,7 +453,6 @@
 	      (:else (li "no editor"))))))
     #+END_SRC
 
-    #+RESULTS:
     #+begin_src html
     <ul>
       <li id="vscode">vscode</li>
@@ -486,7 +481,6 @@
 	      (:else (li "no number"))))))
 	#+END_SRC
 
-    #+RESULTS:
     #+begin_src html
     <ul>
       <li id="3">3</li>
@@ -520,7 +514,6 @@
 	      (:else (li "no editor"))))))
     #+END_SRC
 
-    #+RESULTS:
     #+begin_src html
     <ul>
       <li id="atom">atom</li>
@@ -540,7 +533,6 @@
 	     (:else (li "no number")))))
        #+END_SRC
 
-    #+RESULTS:
     #+begin_src html
     <ul>
       <li id="9">9</li>
