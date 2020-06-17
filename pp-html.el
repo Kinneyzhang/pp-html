@@ -1,5 +1,4 @@
-;;; pp-html.el --- Pretty print html using sexps.
-;;; -*- coding: utf-8; lexical-binding: t; -*-
+;;; pp-html.el --- Pretty print html using sexps. -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2020 Kinney Zhang, all rights reserved.
 
@@ -24,7 +23,7 @@
 
 ;;; Commentary:
 
-;; pp-html is a HTML template library based on emacs-lisp.
+;; pp-html is a HTML template library in emacs-lisp.
 ;; It is convenient to generate simple HTML code or complex HTML page
 ;; by writing elisp S expression in the form of pp-html syntax.
 ;; It is worth mentioning that =:include= and =:extend= tag
@@ -35,46 +34,47 @@
 (require 'dash)
 (require 'web-mode)
 
-(defvar pp-html-filter-list
-      '((:abs pp-html-filter-abs)
-	(:append pp-html-filter-append)
-	(:at_least pp-html-filter-at-least)
-	(:at_most pp-html-filter-at-most)
-	(:capitalize pp-html-filter-capitalize)
-	(:ceil pp-html-filter-ceil)
-	(:compact pp-html-filter-compact)
-	(:concat pp-html-filter-concat)
-	(:date pp-html-filter-date)
-	(:default pp-html-filter-default)
-	(:divided_by pp-html-filter-divided_by)
-	(:downcase pp-html-filter-downcase)
-	(:first pp-html-filter-first)
-	(:floor pp-html-filter-floor)
-	(:join pp-html-filter-join)
-	(:last pp-html-filter-last)
-	(:lstrip pp-html-filter-lstrip)
-	(:map pp-html-filter-map)
-	(:minus pp-html-filter-minus)
-	(:modulo pp-html-filter-modulo)
-	(:plus pp-html-filter-plus)
-	(:prepend pp-html-filter-prepend)
-	(:replace pp-html-filter-replace)
-	(:replace_first pp-html-replace_first)
-	(:reverse pp-html-filter-reverse)
-	(:round pp-html-filter-round)
-	(:rstrip pp-html-filter-rstrip)
-	(:size pp-html-filter-size)
-	(:slice pp-html-filter-slice)
-	(:sort pp-html-filter-sort)
-	(:sort_natural pp-html-filter-sort_natural)
-	(:split pp-html-filter-split)
-	(:strip pp-html-filter-strip)
-	(:strip_html pp-html-filter-strip_html)
-	(:truncate pp-html-filter-truncate)
-	(:truncatewords pp-html-filter-truncatewords)
-	(:uniq pp-html-filter-uniq)
-	(:upcase pp-html-filter-upcase))
-      "Filter list")
+(setq pp-html-filter-list
+  '((:abs pp-html-filter-abs)
+    (:append pp-html-filter-append)
+    (:at_least pp-html-filter-at_least)
+    (:at_most pp-html-filter-at_most)
+    (:capitalize pp-html-filter-capitalize)
+    (:ceil pp-html-filter-ceil)
+    (:compact pp-html-filter-compact)
+    (:concat pp-html-filter-concat)
+    (:date pp-html-filter-date)
+    (:default pp-html-filter-default)
+    (:divided_by pp-html-filter-divided_by)
+    (:downcase pp-html-filter-downcase)
+    (:first pp-html-filter-first)
+    (:floor pp-html-filter-floor)
+    (:join pp-html-filter-join)
+    (:last pp-html-filter-last)
+    (:lstrip pp-html-filter-lstrip)
+    (:map pp-html-filter-map)
+    (:minus pp-html-filter-minus)
+    (:modulo pp-html-filter-modulo)
+    (:plus pp-html-filter-plus)
+    (:prepend pp-html-filter-prepend)
+    (:replace pp-html-filter-replace)
+    (:replace_first pp-html-filter-replace_first)
+    (:reverse pp-html-filter-reverse)
+    (:round pp-html-filter-round)
+    (:rstrip pp-html-filter-rstrip)
+    (:size pp-html-filter-size)
+    (:slice pp-html-filter-slice)
+    (:sort pp-html-filter-sort)
+    (:sort_natural pp-html-filter-sort_natural)
+    (:split pp-html-filter-split)
+    (:strip pp-html-filter-strip)
+    (:strip_html pp-html-filter-strip_html)
+    (:truncate pp-html-filter-truncate)
+    (:truncatewords pp-html-filter-truncatewords)
+    (:uniq pp-html-filter-uniq)
+    (:upcase pp-html-filter-upcase))
+  ;; "Filter list"
+  )
 
 (defvar pp-html-logic-element-list
   '(:assign
@@ -157,22 +157,25 @@
 (defun pp-html--plist-to-alist (plist)
   "Convert plist to alist."
   (let ((i 0)
+	(j 0)
 	(key nil)
 	(val nil)
 	(alist nil))
-    (while (< i (1+ (length plist)))
-      (let ((current (nth i plist)))
-	(cond
-	 ((pp-html-property-p current)
-	  (unless (null key)
-	    (setq alist (append alist (list (cons key val))))
-	    (setq val nil))
-	  (setq key current))
-	 ((or (stringp current) (numberp current))
-	  (setq val (append val (list current))))
-	 (t (setq alist (append alist (list (cons key val))))
-	    (setq val nil))))
-      (incf i))
+    (while (nth i plist)
+      (when (pp-html-property-p (nth i plist))
+	(progn
+	  (setq key (nth i plist))
+	  (setq j (1+ i))))
+      (catch 'break
+	(while (nth j plist)
+	  (if (not (pp-html-property-p (nth j plist)))
+	      (progn
+		(setq val (append val (list (nth j plist))))
+		(incf j))
+	    (throw 'break nil))))
+      (setq alist (append alist (list (cons key val))))
+      (setq val nil)
+      (setq i j))
     alist))
 
 (defun pp-html-sexp-replace (old new sexp)
@@ -215,13 +218,16 @@
   (let* ((value (pp-html-eval (cadr sexp)))
 	 (plist (cddr sexp))
 	 (alist (pp-html--plist-to-alist plist)))
-    (dolist (filter alist)
-      (if (null (cadr filter))
-	  (progn
+    (dolist (item alist)
+      (message "item: %S" item)
+      (if (null (cadr item))
+	  (setq value
+		(eval `(,(cadr (assoc (car item) pp-html-filter-list)) ',value)))
+	(if (-all? 'listp (cdr item))
 	    (setq value
-		  (funcall (cadr (assoc (car filter) pp-html-filter-list)) value)))
-	(setq value
-	      (eval `(funcall (cadr (assoc (car filter) pp-html-filter-list)) value ,@(cdr filter))))))
+		  (eval `(,(cadr (assoc (car item) pp-html-filter-list)) ',value ',@(cdr item))))
+	  (setq value
+		(eval `(,(cadr (assoc (car item) pp-html-filter-list)) ',value ,@(cdr item)))))))
     value))
 
 ;;;###autoload
@@ -241,7 +247,8 @@
 
 (defun pp-html-filter-append (value arg)
   "Append a list to another one."
-  (append (pp-html-parse value) (pp-html-parse arg)))
+  ;; (append (pp-html-eval value) (pp-html-eval arg))
+  (append value (pp-html-eval arg)))
 
 (defun pp-html-filter-at_least (value arg)
   "Limits a number to a minimum value."
@@ -271,7 +278,7 @@
 
 (defun pp-html-filter-concat (value arg)
   "Join two string together."
-  (concat value arg))
+  (concat value (pp-html-eval arg)))
 
 (defun pp-html-filter-date (value arg)
   "Converts a timestamp into another date format.
@@ -336,7 +343,8 @@
   (car value))
 
 (defun pp-html-filter-floor (value)
-  "Rounds the input down to the nearest whole number."
+  "Rounds the input down to the nearest whole number.
+"
   (if (stringp value)
       (floor (string-to-number value))
     (floor value)))
@@ -432,7 +440,7 @@ to the end of STRING.
    (t (error "Items in sorted list must be in one type!"))))
 
 (defun pp-html-filter-sort_natural (value)
-  "Sorts items in an array in case-insensitive order."
+  "Sorts items in an array in none case-insensitive order."
   (cond
    ((-all? 'numberp value)
     (sort value '<))
@@ -448,19 +456,19 @@ to the end of STRING.
   "Removes all whitespace (tabs, spaces, and newlines) from both the left and right sides of a string. It does not affect spaces between words."
   (s-trim value))
 
-(defun pp-html-filter-strip_html (value)
-  "Removes any HTML tags from a string."
-  (with-temp-buffer
-    (insert value)
-    (goto-char (point-min))
-    (setq res nil)
-    (while (re-search-forward "\\(<.+?>.*?</.+?>\\|<.+?/>\\|<.+? />\\)" nil t)
-      (setq res (append res (list (match-string 1)))))
-    (setq repl (mapcar (lambda (x) (string-trim x "<.+?>" "</.+?>")) res))
-    (setq new-str (buffer-string))
-    (dotimes (i (length res))
-      (setq new-str (replace-regexp-in-string (nth i res) (nth i repl) new-str))))
-  new-str)
+;; (defun pp-html-filter-strip_html (value)
+;;   "Removes any HTML tags from a string."
+;;   (with-temp-buffer
+;;     (insert value)
+;;     (goto-char (point-min))
+;;     (setq res nil)
+;;     (while (re-search-forward "\\(<.+?>.*?</.+?>\\|<.+?[ ]*/>\\)" nil t)
+;;       (setq res (append res (list (match-string 1)))))
+;;     (setq repl (mapcar (lambda (x) (string-trim x "<.+?>" "</.+?>")) res))
+;;     (setq new-str (buffer-string))
+;;     (dotimes (i (length res))
+;;       (setq new-str (replace-regexp-in-string (nth i res) (nth i repl) new-str))))
+;;   new-str)
 
 (defun pp-html-filter-truncate (value arg &optional ellipsis)
   "Shortens a string down to the number of characters passed as an argument. If the specified number of characters is less than the length of the string, an ellipsis (…) is appended to the string and is included in the character count."
@@ -631,7 +639,7 @@ to the end of STRING.
 	(pp-html-eval (nth 3 sexp)))))
 
 (defun pp-html--process-logic-case (sexp)
-  "Process :cond logic."
+  "Process :case logic."
   (let ((case-var (pp-html-eval (cadr sexp)))
 	(cases (cddr sexp))
 	res)

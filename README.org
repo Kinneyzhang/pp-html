@@ -29,13 +29,14 @@
 - [[#tips][Tips]]
   - [[#test-and-preview][Test and Preview]]
   - [[#xml-support][XML support]]
+  - [[#not-a-html5-tag][Not a html5 tag]]
   - [[#integrate-with-orgmode][Integrate with OrgMode]]
   - [[#blog-package][Blog package]]
 - [[#plan][Plan]]
 - [[#acknowledgment][Acknowledgment]]
 
 * Introduction
-  pp-html is a HTML template library based on emacs-lisp. The idea comes from [[https://shopify.github.io/liquid/][Liquid template language]] which includes three main parts: object, tag and filter. It is convenient to generate simple HTML code or complex HTML page by writing elisp S expression in the form of pp-html syntax. It is worth mentioning that =:include= and =:extend= tag make it possible to build HTML pages by module and reuse HTML blocks.
+  pp-html is a HTML template library in emacs-lisp. The idea comes from [[https://shopify.github.io/liquid/][Liquid template language]] which includes three main parts: object, tag and filter. It is convenient to generate simple HTML code or complex HTML page by writing elisp S expression in the form of pp-html syntax. It is worth mentioning that =:include= and =:extend= tag make it possible to build HTML pages by module and reuse HTML blocks.
 
 * Installation
   Clone pp-html's github repo to local directory:
@@ -235,6 +236,39 @@
 
 *** Control flow
     Control flow tags can change the information pp-html shows using programming logic.
+
+    *ifequal*
+    
+    Executes a block of code only if two args are equal.
+
+    #+BEGIN_SRC emacs-lisp :wrap src html
+    (pp-html
+     '((:assign str1 "emacs"
+		str2 "emacs2")
+       (:ifequal $str1 $str2 (p "equal")
+		 (p "not equal"))))
+    #+END_SRC
+
+    #+begin_src html
+    <p>not equal</p>
+    #+end_src
+
+    *ifnotequal*
+    
+    Executes a block of code only if two args are not equal.
+
+    #+BEGIN_SRC emacs-lisp :wrap src html
+    (pp-html
+     '((:assign str1 "emacs"
+		str2 "emacs2")
+       (:ifnotequal $str1 $str2 (p "not equal")
+		 (p "equal"))))
+    #+END_SRC
+
+    #+RESULTS:
+    #+begin_src html
+    <p>not equal</p>
+    #+end_src
     
     *if*
 
@@ -264,6 +298,23 @@
 
     #+begin_src html
     <p>true</p>
+    #+end_src
+
+    *case* and *when*
+    
+    When the value after =:when= is equal to the value after =:case=, executes the block following.
+
+    #+BEGIN_SRC emacs-lisp :wrap src html
+    (pp-html
+     '((:assign editor "emacs")
+       (:case $editor
+	      (:when "vim" (p "editor vim"))
+	      (:when "emacs" (p "editor emacs"))
+	      (:when "vscode" (p "editor vscode")))))
+    #+END_SRC
+
+    #+begin_src html
+    <p>editor emacs</p>
     #+end_src
 
     *cond*
@@ -307,7 +358,196 @@
     </ul>
     #+end_src
 
-    ... *More useful tags is one the way!*
+    * else
+      Specifies a fallback case for a for loop which will run if the loop has zero length.
+
+    #+BEGIN_SRC emacs-lisp :wrap src html
+    (pp-html
+     '((:assign editors ())
+       (ul
+	(:for editor in $editors
+	      (li :id $editor $editor)
+	      (:else (li "no editor"))))))
+    #+END_SRC
+
+    #+begin_src html
+    <ul>
+      <li>no editor</li>
+    </ul>
+    #+end_src
+
+    * break
+      Causes the loop to stop iterating when it encounters the break tag.
+
+    #+BEGIN_SRC emacs-lisp :wrap src html
+    (pp-html
+     '((:assign editors ("vim" "emacs" "vscode" "atom" "sublime text"))
+       (ul
+	(:for editor in $editors
+	      (:ifequal $editor "atom"
+			(:break)
+			(li :id $editor $editor))
+	      (:else (li "no editor"))))))
+    #+END_SRC
+
+    #+RESULTS:
+    #+begin_src html
+    <ul>
+      <li id="vim">vim</li>
+      <li id="emacs">emacs</li>
+      <li id="vscode">vscode</li>
+    </ul>
+    #+end_src
+
+    * continue
+      Causes the loop to skip the current iteration when it encounters the continue tag.
+
+    #+BEGIN_SRC emacs-lisp :wrap src html
+    (pp-html
+     '((:assign editors ("vim" "emacs" "vscode" "atom" "sublime text"))
+       (ul
+	(:for editor in $editors
+	      (:ifequal $editor "atom"
+			(:continue)
+			(li :id $editor $editor))
+	      (:else (li "no editor"))))))
+    #+END_SRC
+
+    #+RESULTS:
+    #+begin_src html
+    <ul>
+      <li id="vim">vim</li>
+      <li id="emacs">emacs</li>
+      <li id="vscode">vscode</li>
+      <li id="sublime text">sublime text</li>
+    </ul>
+    #+end_src
+      
+    *for with parameters*
+    
+    * limit 
+      Limits the loop to the specified number of iterations.
+    #+BEGIN_SRC emacs-lisp :wrap src html
+    (pp-html
+     '((:assign editors ("vim" "emacs" "vscode" "atom" "sublime text"))
+       (ul
+	(:for editor in $editors :limit 3
+	      (li :id $editor $editor)
+	      (:else (li "no editor"))))))
+    #+END_SRC
+
+    #+RESULTS:
+    #+begin_src html
+    <ul>
+      <li id="vim">vim</li>
+      <li id="emacs">emacs</li>
+      <li id="vscode">vscode</li>
+    </ul>
+    #+end_src
+
+    * offset
+      Begins the loop at the specified index.
+      
+    #+BEGIN_SRC emacs-lisp :wrap src html
+    (pp-html
+     '((:assign editors ("vim" "emacs" "vscode" "atom" "sublime text"))
+       (ul
+	(:for editor in $editors :offset 2
+	      (li :id $editor $editor)
+	      (:else (li "no editor"))))))
+    #+END_SRC
+
+    #+RESULTS:
+    #+begin_src html
+    <ul>
+      <li id="vscode">vscode</li>
+      <li id="atom">atom</li>
+      <li id="sublime text">sublime text</li>
+    </ul>
+    #+end_src
+
+    * range
+      Defines a range of numbers to loop through. The range can be defined by both literal and variable numbers.
+
+    #+BEGIN_SRC emacs-lisp :wrap src html
+    (pp-html
+     '((ul
+	(:for it in (3..6)
+	      (li :id $it $it)
+	      (:else (li "no number"))))
+       (:assign max 9)
+       (ul
+	(:for it in (6..$max)
+	      (li :id $it $it)
+	      (:else (li "no number"))))
+       (ul
+	(:for it in (2..$max by 2)
+	      (li :id $it $it)
+	      (:else (li "no number"))))))
+	#+END_SRC
+
+    #+RESULTS:
+    #+begin_src html
+    <ul>
+      <li id="3">3</li>
+      <li id="4">4</li>
+      <li id="5">5</li>
+      <li id="6">6</li>
+    </ul>
+    <ul>
+      <li id="6">6</li>
+      <li id="7">7</li>
+      <li id="8">8</li>
+      <li id="9">9</li>
+    </ul>
+    <ul>
+      <li id="2">2</li>
+      <li id="4">4</li>
+      <li id="6">6</li>
+      <li id="8">8</li>
+    </ul>
+    #+end_src
+      
+    * reversed 
+      Reverses the order of the loop.
+      
+    #+BEGIN_SRC emacs-lisp :wrap src html
+    (pp-html
+     '((:assign editors ("vim" "emacs" "vscode" "atom"))
+       (ul
+	(:for editor in $editors :reversed
+	      (li :id $editor $editor)
+	      (:else (li "no editor"))))))
+    #+END_SRC
+
+    #+RESULTS:
+    #+begin_src html
+    <ul>
+      <li id="atom">atom</li>
+      <li id="vscode">vscode</li>
+      <li id="emacs">emacs</li>
+      <li id="vim">vim</li>
+    </ul>
+    #+end_src
+
+    *NOTE*: all types of parameters can be combined together, for example:
+    
+    #+BEGIN_SRC emacs-lisp :wrap src html
+    (pp-html
+     '(ul
+       (:for it in (1..15 by 2) :offset 2 :limit 3 :reversed
+	     (li :id $it $it)
+	     (:else (li "no number")))))
+       #+END_SRC
+
+    #+RESULTS:
+    #+begin_src html
+    <ul>
+      <li id="9">9</li>
+      <li id="7">7</li>
+      <li id="5">5</li>
+    </ul>
+   #+end_src
 
 *** Block
     
@@ -400,8 +640,20 @@
     *append*: appends a list to another one
     #+BEGIN_SRC emacs-lisp
     (let ((list1 '(1 2 3))
-          (list2 '(5 6 7)))
+	  (list2 '(5 6 7)))
       (pp-html-eval '(/ $list1 :append $list2))) ;; => (1 2 3 5 6 7)
+    #+END_SRC
+
+    *at_least*: limits a number to a minimum value
+
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ 3 :at_least 5)) ;; => 5
+    #+END_SRC
+
+    *at_most*: limit a number to a maximum value
+
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ 3 :at_most 5)) ;; => 3
     #+END_SRC
 
     *capitalize*: makes the first character of a string capitalized
@@ -418,16 +670,21 @@
     *concat*: concatenates two strings and returns the concatenated value
     #+BEGIN_SRC emacs-lisp
     (let ((str1 "happy hacking ")
-          (str2 "emacs"))
+	  (str2 "emacs"))
       (pp-html-eval '(/ $str1 :concat $str2))) ;; => happy hacking emacs
+    #+END_SRC
+    
+    *date*: converts a timestamp into another date format
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ "now" :date "%Y-%m-%d %T"))
     #+END_SRC
 
     *default*: default will show its value if the left side is nil, false, or empty
     #+BEGIN_SRC emacs-lisp
     (let ((str1 "")
-          (str2 "new value")
-          (lst1 '(1 2 3))
-          (lst2 nil))
+	  (str2 "new value")
+	  (lst1 '(1 2 3))
+	  (lst2 nil))
       (pp-html-eval '(/ $str1 :default "default value")) ;; => default value
       (pp-html-eval '(/ $str2 :default "default value")) ;; => new value
       (pp-html-eval '(/ $lst1 :default (4 5 6))) ;; => (1 2 3)
@@ -435,18 +692,157 @@
       )
     #+END_SRC
 
-    *escape*: escapes a string by replacing characters with escape sequences
+    *divided_by*: divides a number by another number
     #+BEGIN_SRC emacs-lisp
-    (pp-html-eval '(/ "Have you read 'James & the Giant Peach'?" :escape)) ;; => Have you read &apos;James &amp; the Giant Peach&apos;?
+    (pp-html-eval '(/ 5 :divided_by 3)) ;; => 1
+    #+END_SRC
+
+    *downcase*: convert all chars in string to lower case
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ "HAPPY Hacking Emacs!" :downcase)) ;; => happy hacking emacs!
+    #+END_SRC
+
+    *first*: returns the first item of an array
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ (2 3 4 5) :first)) ;; => 2
+    #+END_SRC
+
+    *floor*: rounds the input down to the nearest whole number
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ 23.6 :floor)) ;; => 23
     #+END_SRC
 
     *join*: combines the items in a list into a single string using the argument as a separator
     #+BEGIN_SRC emacs-lisp
-    (let ((lst '("happy" "hacking" "emacs")))
-      (pp-html-eval '(/ $lst :join "-"))) ;; => happy-hacking-emacs
+    (pp-html-eval '(/ ("happy" "hacking" "emacs") :join " ")) ;; => hacking hacking emacs
     #+END_SRC
 
-    ... *More useful filters is on the way!*
+    *last*: returns the last item of an array
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ (2 3 4 5) :last)) ;; => 5
+    #+END_SRC
+
+    *lstrip*: Removes all whitespace (tabs, spaces, and newlines) from the left side of a string. It does not affect spaces between words
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ "  happy hacking emacs!" :lstrip)) ;; => "happy hacking emacs!"
+    #+END_SRC
+
+    *map*: creates an array of values by extracting the values of a named property from another object
+    #+BEGIN_SRC emacs-lisp
+    (let ((map-lst '((:title "t1" :category "c1" :author "a1")
+		     (:title "t2" :category "c2" :author "a2")
+		     (:title "t3" :category "c3" :author "a3"))))
+      (pp-html-eval '(/ $map-lst :map "category"))) ;; => ("c1" "c2" "c3")
+    #+END_SRC
+
+    *minus*: subtracts a number from another number
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ 6 :minus 3)) ;; => 3
+    #+END_SRC
+
+    *modulo*: returns the remainder of a division operation
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ 5 :modulo 3)) ;; => 2
+    #+END_SRC
+
+    *plus*: adds a number to another number
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ 3 :plus 4)) ;; => 7
+    #+END_SRC
+
+    *prepend*: adds the specified string to the beginning of another string
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ "geekinney.com/" :prepend "https://")) ;; => https://geekinney.com/
+    #+END_SRC
+
+    *replace*: replaces every occurrence of the first argument in a string with the second argument
+    #+BEGIN_SRC emacs-lisp
+    (let ((repl-str "emacs is a lifestyle and happy hacking emacs."))
+      (pp-html-eval '(/ $repl-str :replace "emacs" "vim"))) ;; => vim is a lifestyle and happy hacking vim.
+    #+END_SRC
+
+    *replace_first*: replaces only the first occurrence of the first argument in a string with the second argument
+    #+BEGIN_SRC emacs-lisp
+    (let ((repl-str "emacs is a lifestyle and happy hacking emacs."))
+      (pp-html-eval '(/ $repl-str :replace_first "emacs" "vim"))) ;; => vim is a lifestyle and happy hacking emacs.
+    #+END_SRC
+
+    *reverse*: reverses the order of the items in an array
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ (1 2 3 4) :reverse)) ;; => (4 3 2 1)
+    #+END_SRC
+
+    *round*: rounds a number to the nearest integer
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ 3.6 :round)) ;; => 4
+    #+END_SRC
+
+    *rstrip*: Removes all whitespace (tabs, spaces, and newlines) from the right side of a string. It does not affect spaces between words.
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ "happy hacking emacs!   " :rstrip)) ;; => "happy hacking emacs!"
+    #+END_SRC
+
+    *size*: returns the number of characters in a string or the number of items in an array
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ "emacs" :size)) ;; => 5
+    (pp-html-eval '(/ (2 3 4 5) :size)) ;; => 4
+    #+END_SRC
+
+    *slice*: Return a new string whose contents are a substring of STRING.
+The returned string consists of the characters between index FROM
+(inclusive) and index TO (exclusive) of STRING.  FROM and TO are
+zero-indexed: 0 means the first character of STRING.  Negative values
+are counted from the end of STRING.  If TO is nil, the substring runs
+to the end of STRING.
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ "happy hacking emacs!" :slice 6 -1)) ;; hacking emacs
+    #+END_SRC
+
+    *sort*: sorts items in an array in case-sensitive order
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ ("happy" "Happy" "vim" "hacking" "emacs") :sort)) ;; => ("Happy"  "emacs" "hacking" "happy" "vim")
+    #+END_SRC
+
+    *sort_natural*: sorts items in an array in none case-insensitive order
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ ("happy" "Happy" "vim" "hacking" "emacs") :sort_natural)) ;; => ("emacs" "hacking" "happy" "Happy" "vim")
+    #+END_SRC
+
+    *split*: Divides a string into an array using the argument as a separator. split is commonly used to convert comma-separated items from a string to an array.
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ "happy hacking emacs" :split " ")) ;; => ("happy" "hacking" "emacs")
+    #+END_SRC
+
+    *strip*: Removes all whitespace (tabs, spaces, and newlines) from both the left and right sides of a string. It does not affect spaces between words.
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ "  happy hacking emacs!   " :strip)) ;; => "happy hacing emacs!"
+    #+END_SRC
+
+    *truncate*: Shortens a string down to the number of characters passed as an argument. If the specified number of characters is less than the length of the string, an ellipsis (…) is appended to the string and is included in the character count.
+    #+BEGIN_SRC emacs-lisp
+    (let ((trun-str "emacs is a lifestyle and happy hacing emacs"))
+      (pp-html-eval '(/ $trun-str :truncate 27)) ;; => "emacs is a lifestyle and..."
+      (pp-html-eval '(/ $trun-str :truncate 27 " :)")) ;; => "emacs is a lifestyle and :)"
+      )
+    #+END_SRC
+
+    *truncatewords*: Shortens a string down to the number of words passed as an argument. If the specified number of words is less than the number of words in the string, an ellipsis (…) is appended to the string.
+    #+BEGIN_SRC emacs-lisp
+    (let ((trunw-str "happy hacking emacs, cool!"))
+      (pp-html-eval '(/ $trunw-str :truncatewords 3)) ;; => "happy hacking emacs..."
+      (pp-html-eval '(/ $trunw-str :truncatewords 3 " :)")) ;; => "happy hacking emacs :)"
+      )
+    #+END_SRC
+
+    *uniq*: removes any duplicate elements in an array
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ (2 3 4 3 5 5 2) :uniq)) ;; => (2 3 4 5)
+    #+END_SRC
+    
+    *upcase*: convert all chars in string to upper case
+    #+BEGIN_SRC emacs-lisp
+    (pp-html-eval '(/ "happy hacking emacs" :upcase)) ;; => "HAPPY HACKING EMACS"
+    #+END_SRC
     
 ** Integration
 
@@ -459,6 +855,9 @@
 
 ** XML support
    pp-html also support print XML. Just set the second argument of =pp-html= to =t= is fine.
+
+** Not a html5 tag
+   If you try to print a no-html5 tag using pp-html, it will prompt an error. However, sometime, some packages have defined some no-html5 tags. How to handle it in pp-html? Just set the variable =pp-html-other-html-elements= which is a list.
 
 ** Integrate with OrgMode
    In Org file, we can use emacs-lisp source block with some parameters to generate html source code in Org or HTML, for example.
@@ -495,13 +894,11 @@
    [[https://geekinney.com/][My personal blog site]] is built in the base of =pp-html= because it's handy to build a blog. I will develop a blog site generator emacs package by using pp-html. Please keep watching my [[https://github.com/Kinneyzhang/][Github]]!
 
 * Plan
-  * [ ] Support more useful tags.
-  * [ ] Support more useful filters.
+  * [X] Support more useful tags.
+  * [X] Support more useful filters.
   * [ ] Write a function named =pp-html-reverse= which can parse HTML string into pp-html's S expression form.
 
 * Acknowledgment
   =pp-html= is the first emacs package developed by myself. During developing it, I have met many challenges. Thanks to emacs hacker in [[https://emacs-china.org][Emacs-China]] for your answering questions.
 
   BTW, issues and prs are always welcome!
-
-  *If you appreciate my job, please give me a star and fork this repo as you like.*
