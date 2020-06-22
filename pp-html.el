@@ -34,7 +34,7 @@
 (require 'dash)
 (require 'web-mode)
 
-(setq pp-html-filter-list
+(defvar pp-html-filter-list
   '((:abs pp-html-filter-abs)
     (:append pp-html-filter-append)
     (:at_least pp-html-filter-at_least)
@@ -73,7 +73,7 @@
     (:truncatewords pp-html-filter-truncatewords)
     (:uniq pp-html-filter-uniq)
     (:upcase pp-html-filter-upcase))
-  ;; "Filter list"
+  "Filter list"
   )
 
 (defvar pp-html-logic-element-list
@@ -199,19 +199,6 @@
       (if (and (eq '/ (car el)))
 	  t nil)
     nil))
-
-;; (defun pp-html--filter-alist (plist)
-;;   "Make filter plist to alist"
-;;   (if (null plist)
-;;       '()
-;;     (if (assoc (car plist) pp-html-filter-list)
-;; 	(if (not (assoc (cadr plist) pp-html-filter-list))
-;; 	    (cons
-;; 	     (list (car plist) (cadr plist))
-;; 	     (pp-html--filter-alist (cddr plist)))
-;; 	  (cons
-;; 	   (list (car plist))
-;; 	   (pp-html--filter-alist (cdr plist)))))))
 
 (defun pp-html--filter-eval (sexp)
   "Evalute pp-html filter."
