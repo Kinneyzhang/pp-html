@@ -206,7 +206,6 @@
 	 (plist (cddr sexp))
 	 (alist (pp-html--plist-to-alist plist)))
     (dolist (item alist)
-      (message "item: %S" item)
       (if (null (cadr item))
 	  (setq value
 		(eval `(,(cadr (assoc (car item) pp-html-filter-list)) ',value)))
@@ -655,13 +654,12 @@ to the end of STRING.
 ;; Iteration
 (defun pp-html--process-logic-for (sexp)
   "Process :for logic."
-  (let ((res nil)
-	(old (pp-html-eval (nth 1 sexp)))
+  (let ((old (nth 1 sexp))
 	(in (nth 2 sexp))
 	(seq (pp-html-eval (nth 3 sexp)))
-	(target (nth 4 sexp))
 	(parameters nil)
-	(len (length sexp)))
+	(len (length sexp))
+	target res)
     (if (eq 'in in)
 	(if seq
 	    (progn
@@ -681,6 +679,7 @@ to the end of STRING.
 		  (setq seq (reverse seq)))))
 	      (catch 'break
 		(dolist (new seq)
+		  ;; (setq target (pp-html-parse target))
 		  (setq new-target (pp-html-sexp-replace old new target))
 		  (catch 'continue
 		    (cond
@@ -690,10 +689,10 @@ to the end of STRING.
 		      (throw 'continue res))
 		     (t (setq res (append res (list (pp-html-parse new-target))))))))))
 	  (if (eq :else (car (pp-html-parse (car (last sexp 1)))))
-	      (setq res (cadr (pp-html-parse (car (last sexp 1)))))
-	    (error "error pp-html :for syntax!")))
+	      (setq res (cadr (pp-html-parse (car (last sexp 1)))))))
       (error "error pp-html :for syntax!"))
     res))
+
 
 (defun pp-html--process-logic-include (sexp)
   "Process :include logic."
@@ -920,7 +919,7 @@ to the end of STRING.
   (if (pp-html--has-context-p)
       (progn
 	(skip-chars-forward "^<")
-	(newline))))
+	(newline 1))))
 
 (defun pp-html-format-html ()
   "Well format html string."
@@ -966,25 +965,25 @@ to the end of STRING.
   "Well format xml string."
   (let ((pos (point-min)))
     (with-current-buffer (get-buffer-create "*pp-html-temp*")
-      (nxml-mode)
+      (xml-mode)
       (goto-char (point-min))
       (while (< pos (point-max))
 	(if (pp-html-xml--close-tag-p)
 	    (progn
 	      (skip-chars-forward "^>")
 	      (forward-char)
-	      (newline)
+	      (newline 1)
 	      (pp-html--has-context-newline)
 	      (setq pos (point)))
 	  (if (pp-html-xml--has-child-p)
 	      (progn
 		(nxml-down-element)
-		(newline)
+		(newline 1)
 		(pp-html--has-context-newline)
 		(setq pos (point)))
 	    (progn
 	      (nxml-forward-element)
-	      (newline)
+	      (newline 1)
 	      (pp-html--has-context-newline)
 	      (setq pos (point)))))))))
 
